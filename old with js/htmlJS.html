@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<title>slideShow</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<body>
+    <div class="screen">
+        <img class="picture backSlide" src="pictures\test.jpg">
+        <img class="picture slide" id="slide" src="pictures\test.jpg">
+    </div>
+</body>
+
+
+<style type="text/css">
+    /* BUG:there is a bug here: without var it works fine */
+    :root {
+        --x-start: 0;
+        --y-start: 0%;
+        --x-end: 0;
+        --y-end: 30%;
+    }
+
+
+    @keyframes move {
+        from {
+            right: var(--x-start);
+            top: var(--y-start);
+        }
+
+        to {
+            right: var(--end);
+            top: var(--y-end);
+        }
+    }
+
+    .slide {
+        cursor: none;
+        position: absolute;
+        width: auto;
+        height: 50%;
+        object-fit: contain;
+        
+        /* animation */
+        animation-name: move;
+        animation-duration: 3s;
+        animation-iteration-count: infinite;
+        animation-direction: reverse;
+        animation-timing-function: linear;
+        transform: translate(0%, 5%);
+    }
+
+    .backSlide {
+        position: absolute;
+        /* Safari 6.0 - 9.0 */
+        -webkit-filter: blur(5px);
+        opacity: 0.7;
+        filter: blur(5px);
+        height: 100%;
+        transform: translate(0%, 2.5%);
+
+        /* animation */
+        animation-name: move;
+        animation-duration: 3s;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+    }
+
+    .screen {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+
+
+
+<script>
+    const timeInterval = 3
+    const files = ["pictures\\00000172_(3).jpg", "pictures\\00000008_(6).jpg", "pictures\\00000203_(5).jpg"]
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+
+    // pic pos
+    let picSize = h / 1.1
+    document.getElementsByClassName("slide")[0].style.height = picSize + "px"
+    document.getElementsByClassName("backSlide")[0].style.height = picSize * 1.05 + "px"
+
+    // Animation
+    document.documentElement.style.setProperty('--x-start', '5%');
+    document.documentElement.style.setProperty('--y-start', '5%');
+    document.documentElement.style.setProperty('--x-end', '-5%');
+    document.documentElement.style.setProperty('--y-end', '-5%');
+
+    // Animation timing
+    Array.from(document.getElementsByClassName("picture")).forEach(img => {
+        img.style.setProperty("animation-duration", timeInterval + "s")
+    });
+
+    // animation-duration: 3s;
+    // animation-timing-function: linear;
+    // animation-iteration-count: infinite;
+
+    var pos = 0
+    setInterval(() => {
+        nextSlide();
+        if (pos == files.length) {
+            pos = 0
+        }
+    }, timeInterval * 1000);
+
+    function nextSlide() {
+        let imageDivFront = document.getElementsByClassName("picture")[0];
+        let imageDivBack = document.getElementsByClassName("picture")[1];
+        imageDivFront.setAttribute("src", files[pos])
+        imageDivBack.setAttribute("src", files[pos++])
+    }
+
+    function readImages() {
+
+    }
+</script>
+
+
+</html>
