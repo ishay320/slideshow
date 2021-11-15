@@ -1,9 +1,11 @@
 
+CFLAGS=-Wall -Werror -std=c11 -pedantic -ggdb `pkg-config --cflags sdl2`
+LIBS=`pkg-config --libs sdl2` -lm
 
-main: main.cpp
-	g++ $^ -o $@ -lglut -lGLU -lGL -lSOIL 
-	./main
+slide: main.c
+	cc $(CFLAGS) -o slide main.c $(LIBS) 
+	./slide
 
 clean:
-	-rm main
+	-rm slide
 .PHONY: clean
