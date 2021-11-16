@@ -4,8 +4,9 @@ LIBS=`pkg-config --libs sdl2 SDL2_image` -lm
 
 slide: main.c
 	cc $(CFLAGS) -o slide main.c $(LIBS) 
+run:
+	cc $(CFLAGS) -o slide main.c $(LIBS) 
 	./slide
-
 clean:
 	-rm slide
-.PHONY: clean
+.PHONY: clean run
