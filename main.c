@@ -13,6 +13,7 @@
 
 #define WIDTH 800
 #define HEIGHT 600
+
 int main(void) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "ERROR: could not initialize SDL: %s\n", SDL_GetError());
@@ -35,14 +36,27 @@ int main(void) {
     SDL_Texture *img = NULL;
     int w, h; // texture width & height
 
-    img = IMG_LoadTexture(renderer, "pics/cat2.jpg");
+    img = IMG_LoadTexture(renderer, "pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg");
     SDL_QueryTexture(img, NULL, NULL, &w, &h); // get the width and height of the texture
+    
     // put the location where we want the texture to be drawn into a rectangle
     SDL_Rect texr;
     texr.x = 0;
     texr.y = 0;
-    texr.w = w /3;
-    texr.h = h /3;
+
+    // set the size of the pic TODO: dynamicly change because image have different sizes
+    float width_relation, hight_relation;
+    width_relation = (float)WIDTH / (float)w;
+    hight_relation = (float)HEIGHT / (float)h;
+
+    if (hight_relation < width_relation) {
+        texr.h = h * hight_relation;
+        texr.w = w * hight_relation;
+    } else {
+        texr.h = h * width_relation;
+        texr.w = w * width_relation;
+    }
+
 
 
     bool quit = false;
@@ -55,7 +69,6 @@ int main(void) {
             } break;
             }
         }
-
         SDL_SetRenderDrawColor(renderer, HEXCOLOR(BACKGROUND_COLOR));
 
         // picture
