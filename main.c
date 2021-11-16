@@ -8,34 +8,48 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define HEXCOLOR(code) ((code) >> (3 * 8)) & 0xFF, ((code) >> (2 * 8)) & 0xFF, ((code) >> (1 * 8)) & 0xFF, ((code) >> (0 * 8)) & 0xFF
+#define DEBUG
 
+#ifdef DEBUG
 #define MEASURE(function)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              \
-    {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  \
-        clock_t start, end;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            \
-        double cpu_time_used;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
-        start = clock();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
-        (function);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    \
-        end = clock();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 \
-        cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      \
-        printf("function time %f\n", cpu_time_used);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   \
-    }
+    clock_t start = clock();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           \
+    (function);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        \
+    printf("function time %f\n", ((double)(clock() - start)) / CLOCKS_PER_SEC);
+#else
+#define MEASURE(function) (function);
+#endif
+
+#define HEXCOLOR(code) ((code) >> (3 * 8)) & 0xFF, ((code) >> (2 * 8)) & 0xFF, ((code) >> (1 * 8)) & 0xFF, ((code) >> (0 * 8)) & 0xFF
 
 #define BACKGROUND_COLOR 0x181818FF
 
 #define WIDTH 800
 #define HEIGHT 600
+#define SPEED 0.5
 typedef struct {
     unsigned char r;
     unsigned char g;
     unsigned char b;
 } Pixel;
 
+typedef struct {
+    SDL_Rect rect;
+    float x;
+    float y;
+} Rect;
+
 void Get_Screen_Size(int *Width, int *Height) {
     SDL_DisplayMode DM;
     SDL_GetCurrentDisplayMode(0, &DM);
     *Width = DM.w;
     *Height = DM.h;
+}
+void animate_rect(Rect *rect, int seed, float speed) {
+    srand(seed);
+    rect->x += speed * (((float)rand() / RAND_MAX) - 0.5);
+    rect->y += speed * (((float)rand() / RAND_MAX) - 0.5);
+    rect->rect.x = (int)rect->x;
+    rect->rect.y = (int)rect->y;
 }
 
 void Image_Blur(SDL_Surface *image, int radius) { // TODO: no alfa so 3 channel need to check how many
@@ -93,8 +107,7 @@ int main(void) {
     SDL_Texture *forground_texture = NULL;
     int w, h; // texture width & height
 
-    // background_texture = IMG_LoadTexture(renderer, "pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg"); // SDL_TEXTUREACCESS_STREAMING need to be
-
+    // TODO: clear surface
     SDL_Surface *image = IMG_Load("pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg");
     if (image == NULL) {
         printf("err- %s", SDL_GetError());
@@ -118,12 +131,8 @@ int main(void) {
     SDL_QueryTexture(background_texture, NULL, NULL, &w, &h); // get the width and height of the texture
 
     // put the location where we want the texture to be drawn into a rectangle
-    SDL_Rect backcground_rect;
-    backcground_rect.x = 0;
-    backcground_rect.y = 0;
-    SDL_Rect forground_rect;
-    forground_rect.x = 50;
-    forground_rect.y = 50;
+    Rect forground_rect = {.rect.x = 0, .rect.y = 0, .x = 0, .y = 0};
+    Rect background_rect = {.rect.x = 0, .rect.y = 0, .x = 0, .y = 0};
 
     // set the size of the pic TODO: dynamicly change because image have different sizes
     float width_relation, hight_relation;
@@ -133,25 +142,16 @@ int main(void) {
     hight_relation = (float)window_hight / (float)h;
 
     if (hight_relation < width_relation) {
-        backcground_rect.h = h * hight_relation;
-        backcground_rect.w = w * hight_relation;
+        background_rect.rect.h = h * hight_relation;
+        background_rect.rect.w = w * hight_relation;
     } else {
-        backcground_rect.h = h * width_relation;
-        backcground_rect.w = w * width_relation;
+        background_rect.rect.h = h * width_relation;
+        background_rect.rect.w = w * width_relation;
     }
+    forground_rect.rect.h = background_rect.rect.h;
+    forground_rect.rect.w = background_rect.rect.w;
 
     SDL_SetRenderDrawColor(renderer, HEXCOLOR(BACKGROUND_COLOR));
-
-    unsigned char *pixels = NULL;
-    int pitch = 0;
-
-    // int err = SDL_LockTexture(background_texture, NULL, (void **)&pixels, &pitch);
-    // (void)err;
-    // set pixels to solid white
-    for (int i = 0; i < pitch; i++) {
-        pixels[i] = 255;
-    }
-    // SDL_UnlockTexture(background_texture);
 
     bool quit = false;
     while (!quit) {
@@ -163,13 +163,14 @@ int main(void) {
             } break;
             }
         }
+        animate_rect(&forground_rect, 1, 1 * SPEED);
+        animate_rect(&background_rect, 1, -0.3 * SPEED);
 
         // clear the screen
         SDL_RenderClear(renderer);
         // copy the texture to the rendering context
-        SDL_RenderCopy(renderer, background_texture, NULL, &backcground_rect);
-        SDL_RenderCopy(renderer, forground_texture, NULL, &forground_rect);
-        // flip the backbuffer
+        SDL_RenderCopy(renderer, background_texture, NULL, &background_rect.rect);
+        SDL_RenderCopy(renderer, forground_texture, NULL, &forground_rect.rect);
         // this means that everything that we prepared behind the screens is actually shown
         SDL_RenderPresent(renderer);
     }
