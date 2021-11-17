@@ -85,6 +85,27 @@ void Image_Blur(SDL_Surface *image, int radius) {
     SDL_UnlockSurface(image);
 }
 
+void resize_rect(SDL_Texture *texture, Rect *rect, SDL_Window *window) {
+    int w, h; // texture width & height
+
+    SDL_QueryTexture(texture, NULL, NULL, &w, &h); // get the width and height of the texture
+
+    // set the size of the pic TODO: dynamicly change because image have different sizes
+    float width_relation, hight_relation;
+    int window_hight, window_width = 0;
+    SDL_GetWindowSize(window, &window_width, &window_hight); // can be done once
+    width_relation = (float)window_width / (float)w;
+    hight_relation = (float)window_hight / (float)h;
+
+    if (hight_relation < width_relation) {
+        rect->rect.h = h * hight_relation;
+        rect->rect.w = w * hight_relation;
+    } else {
+        rect->rect.h = h * width_relation;
+        rect->rect.w = w * width_relation;
+    }
+}
+
 int load_IMG_To_Texure(char *path, SDL_Texture **texture, SDL_Renderer *renderer, void (*effect_Function)(SDL_Surface *, int), int effect_config) { // TODO: use va_list
     SDL_Surface *image = IMG_Load(path);
     if (image == NULL) {
@@ -127,7 +148,6 @@ int main(void) {
     // load our image
     SDL_Texture *background_texture = NULL;
     SDL_Texture *forground_texture = NULL;
-    int w, h; // texture width & height
 
     int err = load_IMG_To_Texure("pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg", &background_texture, renderer, Image_Blur, 9);
     if (err != 0) {
@@ -142,23 +162,7 @@ int main(void) {
     // put the location where we want the texture to be drawn into a rectangle
     Rect forground_rect = {.rect.x = 0, .rect.y = 0, .x = 0, .y = 0};
     Rect background_rect = {.rect.x = 0, .rect.y = 0, .x = 0, .y = 0};
-
-    SDL_QueryTexture(background_texture, NULL, NULL, &w, &h); // get the width and height of the texture
-
-    // set the size of the pic TODO: dynamicly change because image have different sizes
-    float width_relation, hight_relation;
-    int window_hight, window_width = 0;
-    SDL_GetWindowSize(window, &window_width, &window_hight);
-    width_relation = (float)window_width / (float)w;
-    hight_relation = (float)window_hight / (float)h;
-
-    if (hight_relation < width_relation) {
-        background_rect.rect.h = h * hight_relation;
-        background_rect.rect.w = w * hight_relation;
-    } else {
-        background_rect.rect.h = h * width_relation;
-        background_rect.rect.w = w * width_relation;
-    }
+    resize_rect(background_texture, &background_rect, window);
     forground_rect.rect.h = background_rect.rect.h;
     forground_rect.rect.w = background_rect.rect.w;
 
@@ -180,7 +184,7 @@ int main(void) {
         }
         // TODO: #9 get random name from file
         if (sec > 3) {
-            load_IMG_To_Texure("pics/cat2.jpg", &forground_texture, renderer, NULL, 0);
+            // load_IMG_To_Texure("pics/cat2.jpg", &forground_texture, renderer, NULL, 0);
             sec = 0;
         } else {
             sec += ((double)(clock() - start)) / CLOCKS_PER_SEC;
