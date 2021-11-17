@@ -44,6 +44,7 @@ void Get_Screen_Size(int *Width, int *Height) {
     *Width = DM.w;
     *Height = DM.h;
 }
+
 void animate_rect(Rect *rect, int seed, float speed) {
     srand(seed);
     rect->x += speed * (((float)rand() / RAND_MAX) - 0.5);
@@ -90,7 +91,7 @@ int main(void) {
     int Width = 0;
     int Height = 0;
     Get_Screen_Size(&Width, &Height);
-    SDL_Window *window = SDL_CreateWindow("slider", 0, 0, Width, Height, SDL_WINDOW_RESIZABLE); // SDL_WINDOW_FULLSCREEN
+    SDL_Window *window = SDL_CreateWindow("slider", 0, 0, Width, Height, SDL_WINDOW_RESIZABLE); // TODO: replace with SDL_WINDOW_FULLSCREEN
     if (window == NULL) {
         fprintf(stderr, "ERROR: could not create a window: %s\n", SDL_GetError());
         exit(1);
@@ -101,13 +102,13 @@ int main(void) {
         fprintf(stderr, "ERROR: could not create a renderer: %s\n", SDL_GetError());
         exit(1);
     }
-
+    // TODO: load with function and path
     // load our image
     SDL_Texture *background_texture = NULL;
     SDL_Texture *forground_texture = NULL;
     int w, h; // texture width & height
 
-    // TODO: clear surface
+    // TODO: clear surface on replacement
     SDL_Surface *image = IMG_Load("pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg");
     if (image == NULL) {
         printf("err- %s", SDL_GetError());
@@ -120,7 +121,8 @@ int main(void) {
         exit(1);
     }
 
-    MEASURE(Image_Blur(image, 9))
+    // TODO: blur on the time of the effect
+    MEASURE(Image_Blur(image, 9));
 
     background_texture = SDL_CreateTextureFromSurface(renderer, image);
     if (background_texture == NULL) {
