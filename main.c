@@ -85,6 +85,24 @@ void Image_Blur(SDL_Surface *image, int radius) {
     SDL_UnlockSurface(image);
 }
 
+int load_IMG_To_Texure(char *path, SDL_Texture **texture, SDL_Renderer *renderer, void (*effect_Function)(SDL_Surface *, int), int effect_config) { // TODO: use va_list
+    SDL_Surface *image = IMG_Load(path);
+    if (image == NULL) {
+        printf("err- %s", SDL_GetError());
+        return (-1);
+    }
+    if (effect_Function != NULL) {
+        effect_Function(image, effect_config); // TODO: #6 blur on the time of the effect on different core
+    }
+    *texture = SDL_CreateTextureFromSurface(renderer, image);
+    if (texture == NULL) {
+        printf("err- %s", SDL_GetError());
+        return (-1);
+    }
+    SDL_FreeSurface(image);
+    return 0;
+}
+
 int main(void) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "ERROR: could not initialize SDL: %s\n", SDL_GetError());
@@ -106,31 +124,18 @@ int main(void) {
         fprintf(stderr, "ERROR: could not create a renderer: %s\n", SDL_GetError());
         exit(1);
     }
-    // TODO: #4 load with function and path
     // load our image
     SDL_Texture *background_texture = NULL;
     SDL_Texture *forground_texture = NULL;
     int w, h; // texture width & height
 
-    // TODO: #5 clear surface on replacement
-    SDL_Surface *image = IMG_Load("pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg");
-    if (image == NULL) {
-        printf("err- %s", SDL_GetError());
+    int err = load_IMG_To_Texure("pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg", &background_texture, renderer, Image_Blur, 9);
+    if (err != 0) {
         exit(1);
     }
 
-    forground_texture = SDL_CreateTextureFromSurface(renderer, image);
-    if (forground_texture == NULL) {
-        printf("err- %s", SDL_GetError());
-        exit(1);
-    }
-
-    // TODO: #6 blur on the time of the effect on different core
-    MEASURE(Image_Blur(image, 9));
-
-    background_texture = SDL_CreateTextureFromSurface(renderer, image);
-    if (background_texture == NULL) {
-        printf("err- %s", SDL_GetError());
+    err = load_IMG_To_Texure("pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg", &forground_texture, renderer, NULL, 0);
+    if (err != 0) {
         exit(1);
     }
 
@@ -159,6 +164,9 @@ int main(void) {
 
     SDL_SetRenderDrawColor(renderer, HEXCOLOR(BACKGROUND_COLOR));
 
+    clock_t start = clock();
+    double sec = 0;
+
     bool quit = false;
     while (!quit) {
         SDL_Event event;
@@ -169,6 +177,14 @@ int main(void) {
             } break;
             }
         }
+
+        if (sec > 3) {
+            load_IMG_To_Texure("pics/cat2.jpg", &forground_texture, renderer, NULL, 0);
+            sec = 0;
+        } else {
+            sec += ((double)(clock() - start)) / CLOCKS_PER_SEC;
+        }
+
         animate_rect(&forground_rect, 1, 1 * SPEED);
         animate_rect(&background_rect, 1, -0.3 * SPEED);
 
