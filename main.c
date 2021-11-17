@@ -44,15 +44,20 @@ void Get_Screen_Size(int *Width, int *Height) {
     *Width = DM.w;
     *Height = DM.h;
 }
+
 void animate_rect(Rect *rect, int seed, float speed) {
-    srand(seed);
+    srand(seed); // TODO: #1 save the random arg somewhere to make it faster to render
     rect->x += speed * (((float)rand() / RAND_MAX) - 0.5);
     rect->y += speed * (((float)rand() / RAND_MAX) - 0.5);
     rect->rect.x = (int)rect->x;
     rect->rect.y = (int)rect->y;
 }
-
-void Image_Blur(SDL_Surface *image, int radius) { // TODO: no alfa so 3 channel need to check how many
+/*
+    TODO #2:
+        [ ] - no alfa so 3 channel need to check how many
+        [ ] - make it faster
+ */
+void Image_Blur(SDL_Surface *image, int radius) {
     SDL_LockSurface(image);
     for (size_t i = 0; i < image->h * image->w; i++) {
         Pixel *pixels = (Pixel *)image->pixels;
@@ -80,6 +85,24 @@ void Image_Blur(SDL_Surface *image, int radius) { // TODO: no alfa so 3 channel 
     SDL_UnlockSurface(image);
 }
 
+int load_IMG_To_Texure(char *path, SDL_Texture **texture, SDL_Renderer *renderer, void (*effect_Function)(SDL_Surface *, int), int effect_config) { // TODO: use va_list
+    SDL_Surface *image = IMG_Load(path);
+    if (image == NULL) {
+        printf("err- %s", SDL_GetError());
+        return (-1);
+    }
+    if (effect_Function != NULL) {
+        effect_Function(image, effect_config); // TODO: #6 blur on the time of the effect on different core
+    }
+    *texture = SDL_CreateTextureFromSurface(renderer, image);
+    if (texture == NULL) {
+        printf("err- %s", SDL_GetError());
+        return (-1);
+    }
+    SDL_FreeSurface(image);
+    return 0;
+}
+
 int main(void) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "ERROR: could not initialize SDL: %s\n", SDL_GetError());
@@ -90,7 +113,7 @@ int main(void) {
     int Width = 0;
     int Height = 0;
     Get_Screen_Size(&Width, &Height);
-    SDL_Window *window = SDL_CreateWindow("slider", 0, 0, Width, Height, SDL_WINDOW_RESIZABLE); // SDL_WINDOW_FULLSCREEN
+    SDL_Window *window = SDL_CreateWindow("slider", 0, 0, Width, Height, SDL_WINDOW_RESIZABLE); // TODO: #3 replace with SDL_WINDOW_FULLSCREEN
     if (window == NULL) {
         fprintf(stderr, "ERROR: could not create a window: %s\n", SDL_GetError());
         exit(1);
@@ -101,38 +124,26 @@ int main(void) {
         fprintf(stderr, "ERROR: could not create a renderer: %s\n", SDL_GetError());
         exit(1);
     }
-
     // load our image
     SDL_Texture *background_texture = NULL;
     SDL_Texture *forground_texture = NULL;
     int w, h; // texture width & height
 
-    // TODO: clear surface
-    SDL_Surface *image = IMG_Load("pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg");
-    if (image == NULL) {
-        printf("err- %s", SDL_GetError());
+    int err = load_IMG_To_Texure("pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg", &background_texture, renderer, Image_Blur, 9);
+    if (err != 0) {
         exit(1);
     }
 
-    forground_texture = SDL_CreateTextureFromSurface(renderer, image);
-    if (forground_texture == NULL) {
-        printf("err- %s", SDL_GetError());
+    err = load_IMG_To_Texure("pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg", &forground_texture, renderer, NULL, 0);
+    if (err != 0) {
         exit(1);
     }
-
-    MEASURE(Image_Blur(image, 9))
-
-    background_texture = SDL_CreateTextureFromSurface(renderer, image);
-    if (background_texture == NULL) {
-        printf("err- %s", SDL_GetError());
-        exit(1);
-    }
-
-    SDL_QueryTexture(background_texture, NULL, NULL, &w, &h); // get the width and height of the texture
 
     // put the location where we want the texture to be drawn into a rectangle
     Rect forground_rect = {.rect.x = 0, .rect.y = 0, .x = 0, .y = 0};
     Rect background_rect = {.rect.x = 0, .rect.y = 0, .x = 0, .y = 0};
+
+    SDL_QueryTexture(background_texture, NULL, NULL, &w, &h); // get the width and height of the texture
 
     // set the size of the pic TODO: dynamicly change because image have different sizes
     float width_relation, hight_relation;
@@ -153,6 +164,9 @@ int main(void) {
 
     SDL_SetRenderDrawColor(renderer, HEXCOLOR(BACKGROUND_COLOR));
 
+    clock_t start = clock();
+    double sec = 0;
+
     bool quit = false;
     while (!quit) {
         SDL_Event event;
@@ -163,6 +177,14 @@ int main(void) {
             } break;
             }
         }
+
+        if (sec > 3) {
+            load_IMG_To_Texure("pics/cat2.jpg", &forground_texture, renderer, NULL, 0);
+            sec = 0;
+        } else {
+            sec += ((double)(clock() - start)) / CLOCKS_PER_SEC;
+        }
+
         animate_rect(&forground_rect, 1, 1 * SPEED);
         animate_rect(&background_rect, 1, -0.3 * SPEED);
 
