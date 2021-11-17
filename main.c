@@ -171,6 +171,8 @@ int main(void) {
     // TODO: #8 set better timing
     clock_t start = clock();
     double sec = 0;
+    char *files_name[3] = {"pics/cat2.jpg", "pics/t/test.jpg", "pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg"};
+    int pos = 0;
 
     bool quit = false;
     while (!quit) {
@@ -184,8 +186,15 @@ int main(void) {
         }
         // TODO: #9 get random name from file
         if (sec > 3) {
-            // load_IMG_To_Texure("pics/cat2.jpg", &forground_texture, renderer, NULL, 0);
+            load_IMG_To_Texure(files_name[pos], &forground_texture, renderer, NULL, 0);
+            load_IMG_To_Texure(files_name[pos++], &background_texture, renderer, Image_Blur, 9);
+            // TODO:#6 load the blur next image on diff thread and only replace
+
+            if (pos == 3) {
+                pos = 0;
+            }
             sec = 0;
+            start = clock();
         } else {
             sec += ((double)(clock() - start)) / CLOCKS_PER_SEC;
         }
