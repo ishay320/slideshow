@@ -164,6 +164,7 @@ int main(void) {
 
     SDL_SetRenderDrawColor(renderer, HEXCOLOR(BACKGROUND_COLOR));
 
+    // TODO: #8 set better timing
     clock_t start = clock();
     double sec = 0;
 
@@ -177,7 +178,7 @@ int main(void) {
             } break;
             }
         }
-
+        // TODO: #9 get random name from file
         if (sec > 3) {
             load_IMG_To_Texure("pics/cat2.jpg", &forground_texture, renderer, NULL, 0);
             sec = 0;
