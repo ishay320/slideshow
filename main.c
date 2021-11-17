@@ -46,14 +46,18 @@ void Get_Screen_Size(int *Width, int *Height) {
 }
 
 void animate_rect(Rect *rect, int seed, float speed) {
-    srand(seed);
+    srand(seed); // TODO: #1 save the random arg somewhere to make it faster to render
     rect->x += speed * (((float)rand() / RAND_MAX) - 0.5);
     rect->y += speed * (((float)rand() / RAND_MAX) - 0.5);
     rect->rect.x = (int)rect->x;
     rect->rect.y = (int)rect->y;
 }
-
-void Image_Blur(SDL_Surface *image, int radius) { // TODO: no alfa so 3 channel need to check how many
+/*
+    TODO #2:
+        [ ] - no alfa so 3 channel need to check how many
+        [ ] - make it faster
+ */
+void Image_Blur(SDL_Surface *image, int radius) {
     SDL_LockSurface(image);
     for (size_t i = 0; i < image->h * image->w; i++) {
         Pixel *pixels = (Pixel *)image->pixels;
@@ -91,7 +95,7 @@ int main(void) {
     int Width = 0;
     int Height = 0;
     Get_Screen_Size(&Width, &Height);
-    SDL_Window *window = SDL_CreateWindow("slider", 0, 0, Width, Height, SDL_WINDOW_RESIZABLE); // TODO: replace with SDL_WINDOW_FULLSCREEN
+    SDL_Window *window = SDL_CreateWindow("slider", 0, 0, Width, Height, SDL_WINDOW_RESIZABLE); // TODO: #3 replace with SDL_WINDOW_FULLSCREEN
     if (window == NULL) {
         fprintf(stderr, "ERROR: could not create a window: %s\n", SDL_GetError());
         exit(1);
@@ -102,13 +106,13 @@ int main(void) {
         fprintf(stderr, "ERROR: could not create a renderer: %s\n", SDL_GetError());
         exit(1);
     }
-    // TODO: load with function and path
+    // TODO: #4 load with function and path
     // load our image
     SDL_Texture *background_texture = NULL;
     SDL_Texture *forground_texture = NULL;
     int w, h; // texture width & height
 
-    // TODO: clear surface on replacement
+    // TODO: #5 clear surface on replacement
     SDL_Surface *image = IMG_Load("pics/closup-of-cat-on-floor-julie-austin-pet-photography.jpg");
     if (image == NULL) {
         printf("err- %s", SDL_GetError());
@@ -121,7 +125,7 @@ int main(void) {
         exit(1);
     }
 
-    // TODO: blur on the time of the effect
+    // TODO: #6 blur on the time of the effect on different core
     MEASURE(Image_Blur(image, 9));
 
     background_texture = SDL_CreateTextureFromSurface(renderer, image);
@@ -130,11 +134,11 @@ int main(void) {
         exit(1);
     }
 
-    SDL_QueryTexture(background_texture, NULL, NULL, &w, &h); // get the width and height of the texture
-
     // put the location where we want the texture to be drawn into a rectangle
     Rect forground_rect = {.rect.x = 0, .rect.y = 0, .x = 0, .y = 0};
     Rect background_rect = {.rect.x = 0, .rect.y = 0, .x = 0, .y = 0};
+
+    SDL_QueryTexture(background_texture, NULL, NULL, &w, &h); // get the width and height of the texture
 
     // set the size of the pic TODO: dynamicly change because image have different sizes
     float width_relation, hight_relation;
