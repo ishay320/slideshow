@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 600
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <assert.h>
@@ -7,6 +9,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
+
+#include <dirent.h>
+#include <ftw.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #define DEBUG
 
@@ -52,6 +60,7 @@ void animate_rect(Rect *rect, int seed, float speed) {
     rect->rect.x = (int)rect->x;
     rect->rect.y = (int)rect->y;
 }
+
 /*
     TODO #2:
         [ ] - no alfa so 3 channel need to check how many
@@ -124,7 +133,79 @@ int load_IMG_To_Texure(char *path, SDL_Texture **texture, SDL_Renderer *renderer
     return 0;
 }
 
-int main(void) {
+bool file_hidden(const char *name) {
+    for (size_t i = 0; name[i] != '\0'; i++) {
+        if (name[i] == '/') {
+            if (*(name + i + 1) == '.') {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+typedef struct linkedList_t{
+    char *data;
+    struct linkedList_t *next;
+} linkedList_t;
+linkedList_t *pos;
+
+int print_ftw(const char *name, const struct stat *status, int type, struct FTW *ftw) {
+    if (type == FTW_NS || ftw->level == 0 || file_hidden(name)) {
+        return 0;
+    }
+
+    if (type == FTW_F) {
+        char* n = malloc(strlen(name));
+        linkedList_t *next = malloc(sizeof(linkedList_t));
+        next->data = strcpy(n,name);
+        next->next = NULL;
+        pos->next = next;
+        pos = pos->next;
+    }
+
+    return 0;
+}
+
+void find_files(char* folder_name,char *output,char **postfixs,size_t postfix_size){
+    pos = malloc(sizeof(linkedList_t));// needs global linkedList for nftw
+    linkedList_t *root = pos;
+    pos->data = folder_name;
+    nftw(folder_name, print_ftw, 10, 0); 
+
+    FILE *JPGFile;
+    JPGFile = fopen(output, "w+");
+
+    pos = root->next;
+    while (pos->next != NULL)
+    {
+        linkedList_t *tmp = pos;
+        for (size_t i = 0; i < postfix_size; i++)
+        {
+            if (strstr(pos->data,postfixs[i])!=NULL)
+            {
+                fprintf(JPGFile,"%s\n",pos->data);
+            }
+        }
+        
+        pos = pos->next;
+        free(tmp->data);
+        free(tmp);
+    }
+    fclose(JPGFile);
+}
+
+int main(int argc, char const *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "ERROR: use %s [path]\n", *argv);
+        exit(1);
+    }
+    char path[256];
+    strcpy(path, argv[1]);
+
+    char *postfix[] = {".JPG",".jpg"};
+    find_files(path,"JPGFiles",postfix,2);
+
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "ERROR: could not initialize SDL: %s\n", SDL_GetError());
         exit(1);

@@ -6,7 +6,7 @@ slide: main.c
 	cc $(CFLAGS) -o slide main.c $(LIBS) 
 run:
 	cc $(CFLAGS) -o slide main.c $(LIBS) 
-	./slide
+	./slide .
 clean:
-	-rm slide
-.PHONY: clean run
+	-rm -f slide JPGFiles
+.PHONY: clean run 
