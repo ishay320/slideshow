@@ -4,22 +4,28 @@
 
 #include <iostream>
 
+#include "stb_image.h"
 #include "texture.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+Texture::Texture(const Image& image) { setTexture(image); }
+
+Texture::Texture(unsigned char* image_data, int width, int height, int channels)
+{
+    Image image{image_data, width, height, channels};
+
+    setTexture(image);
+}
 
 Texture::Texture(const char* texture_path)
 {
     // load texture
-    int width, height, nr_channels;
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char* image_data = stbi_load(texture_path, &width, &height, &nr_channels, 0);
-    if (image_data == 0)
-    {
-        std::cout << "ERROR: image texture could not load: '" << texture_path << '\'';
-    }
+    Image image{texture_path};
 
+    setTexture(image);
+}
+
+void Texture::setTexture(const Image& image)
+{
     glGenTextures(1, &_texture);
 
     glBindTexture(GL_TEXTURE_2D, _texture);
@@ -28,13 +34,14 @@ Texture::Texture(const char* texture_path)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.getWidth(), image.getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, image.getData());
     glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(image_data);
 }
+
 void Texture::bind()
 {
     glActiveTexture(GL_TEXTURE0); // if multi texture are loaded then choose
     glBindTexture(GL_TEXTURE_2D, _texture);
 }
+
 Texture::~Texture() {}

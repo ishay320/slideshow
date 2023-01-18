@@ -28,7 +28,9 @@ CXX_SOURCES :=		\
 ./src/mesh.cpp		\
 ./src/object.cpp	\
 ./src/camera.cpp	\
-./src/scene.cpp
+./src/scene.cpp		\
+./src/stb_image.cpp	\
+./src/image.cpp
 
 
 C_SOURCES := \
