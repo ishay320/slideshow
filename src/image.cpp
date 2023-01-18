@@ -2,6 +2,14 @@
 
 #include <iostream>
 
+Image::Image(Image&& other) : _image_data(other._image_data), _width(other._width), _height(other._height), _channels(other._channels)
+{
+    other._width      = 0;
+    other._height     = 0;
+    other._channels   = 0;
+    other._image_data = nullptr;
+}
+
 Image::Image(const char* filename, bool flip)
 {
     stbi_set_flip_vertically_on_load(flip);
@@ -18,16 +26,64 @@ Image::Image(unsigned char* image_data, int width, int height, int channels)
 {
 }
 
-Image::~Image() { stbi_image_free(_image_data); }
+Image::Image(int width, int height, int channels) : _width(width), _height(height), _channels(channels)
+{
+    _file       = false;
+    _image_data = (unsigned char*)malloc(_width * _height * _channels * sizeof(unsigned char));
+    if (_image_data == nullptr)
+    {
+        std::cerr << __FILE__ << ':' << __LINE__ << " "
+                  << "[ERROR] image could not created" << '\n';
+    }
+}
+
+Image::~Image()
+{
+    if (_image_data != nullptr)
+    {
+
+        stbi_image_free(_image_data);
+        _image_data = nullptr;
+    }
+}
 
 int Image::getWidth() const { return _width; }
 int Image::getHeight() const { return _height; }
 int Image::getChannels() const { return _channels; }
 
+bool Image::isEmpty() const { return getData() == nullptr; }
+
 inline Pixel* Image::getPixel(int x, int y) const { return (Pixel*)&_image_data[_channels * (x * _width + y)]; }
 
 unsigned char* Image::getData() const { return _image_data; }
 
+Image& Image::operator=(Image&& other)
+{
+    this->~Image();
+    _width      = other._width;
+    _height     = other._height;
+    _channels   = other._channels;
+    _image_data = other._image_data;
+
+    other._width      = 0;
+    other._height     = 0;
+    other._channels   = 0;
+    other._image_data = nullptr;
+
+    return *this;
+}
+
+void fillColor(Image& image, Pixel color)
+{
+    for (int i = 0; i < image.getHeight(); i++)
+    {
+        for (int j = 0; j < image.getWidth(); j++)
+        {
+            Pixel* pixel = image.getPixel(i, j);
+            *pixel       = color;
+        }
+    }
+}
 void removeChannel(Image& image, bool remove_r, bool remove_g, bool remove_b)
 {
     for (int i = 0; i < image.getHeight(); i++)
@@ -37,7 +93,7 @@ void removeChannel(Image& image, bool remove_r, bool remove_g, bool remove_b)
             Pixel* pixel = image.getPixel(i, j);
 
             if (remove_r)
-                pixel->r = 0;
+                pixel->r = 255;
             if (remove_g)
                 pixel->g = 0;
             if (remove_b)
@@ -46,9 +102,12 @@ void removeChannel(Image& image, bool remove_r, bool remove_g, bool remove_b)
     }
 }
 
-void blurImage(unsigned char* image, unsigned int radius, unsigned int width, unsigned int height, unsigned int channels)
+void boxBlurImage(Image& image, unsigned int radius)
 {
-    if (image == nullptr)
+
+    Image image_out{image.getWidth(), image.getHeight(), image.getChannels()};
+
+    if (image.isEmpty())
     {
         std::cerr << __FILE__ << ':' << __LINE__ << " "
                   << "[ERROR] input image is empty\n";
@@ -61,18 +120,9 @@ void blurImage(unsigned char* image, unsigned int radius, unsigned int width, un
         return;
     }
 
-    const int width_compensated = width * channels;
-    unsigned char* image_copy   = (unsigned char*)malloc(width_compensated * height * sizeof(unsigned char));
-    if (image_copy == nullptr)
+    for (int i = 0; i < image.getHeight(); i++)
     {
-        std::cerr << __FILE__ << ':' << __LINE__ << " "
-                  << "[ERROR] buy more ram :)\n";
-        return;
-    }
-
-    for (int i = 0; i < (int)height; i++)
-    {
-        for (int j = 0; j < width_compensated; j += channels)
+        for (int j = 0; j < image.getWidth(); j++)
         {
             int sum_r = 0;
             int sum_g = 0;
@@ -80,30 +130,28 @@ void blurImage(unsigned char* image, unsigned int radius, unsigned int width, un
             int count = 0;
             for (int k = -radius; k < (int)radius; k++)
             {
-                if ((int)height <= i + k || 0 > i + k)
+                if (image.getHeight() <= i + k || 0 > i + k)
                 {
                     continue;
                 }
-                for (int l = -radius; l < (int)radius; l++)
+                for (int l = -radius; l <= (int)radius; l++)
                 {
-                    if (width_compensated <= j + l || 0 > j + l)
+                    if (image.getWidth() <= j + l || 0 > j + l)
                     {
                         continue;
                     }
 
                     ++count;
-                    sum_r += image[width_compensated * (i + k) + (j + l) + 0];
-                    sum_g += image[width_compensated * (i + k) + (j + l) + 1];
-                    sum_b += image[width_compensated * (i + k) + (j + l) + 2];
+                    sum_r += image.getPixel((i + k), (j + l))->r;
+                    sum_g += image.getPixel((i + k), (j + l))->g;
+                    sum_b += image.getPixel((i + k), (j + l))->b;
                 }
             }
-            image_copy[width_compensated * i + j + 0] = sum_r / count;
-            image_copy[width_compensated * i + j + 1] = sum_g / count;
-            image_copy[width_compensated * i + j + 2] = sum_b / count;
-            // image_copy[width * i + j] = 255;
+            image_out.getPixel(i, j)->r = sum_r / count;
+            image_out.getPixel(i, j)->g = sum_g / count;
+            image_out.getPixel(i, j)->b = sum_b / count;
         }
     }
 
-    std::copy(image, image + width_compensated * height * sizeof(unsigned char), image_copy);
-    free(image_copy);
+    image = std::move(image_out);
 }
