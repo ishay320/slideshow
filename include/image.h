@@ -57,11 +57,42 @@ private:
     bool _file = true;
 };
 
+/**
+ * @brief resize the image
+ *
+ * @param image
+ * @param width
+ * @param height
+ * @return Image
+ */
 Image resize(const Image& image, int width, int height);
 
+/**
+ * @brief fill the image with selected color
+ *
+ * @param image
+ * @param color
+ */
 void fillColor(Image& image, const Pixel& color);
 
+/**
+ * @brief set selected color to 0
+ *
+ * @param image
+ * @param remove_r
+ * @param remove_g
+ * @param remove_b
+ */
 void removeChannel(Image& image, bool remove_r, bool remove_g, bool remove_b);
+
+/**
+ * @brief fast gaussian blur
+ * code from https://gist.github.com/bfraboni/946d9456b15cac3170514307cf032a27 under MIT
+ *
+ * @param image
+ * @param radius
+ */
+void fastGaussianBlur(Image& image, unsigned int radius);
 
 /**
  * @brief original box blur (slow)
@@ -69,6 +100,6 @@ void removeChannel(Image& image, bool remove_r, bool remove_g, bool remove_b);
  * @param image IO replace with filtered
  * @param radius
  */
-void boxBlurImage(Image& image, unsigned int radius);
+void boxBlur(Image& image, unsigned int radius);
 
 #endif // IMAGE_H

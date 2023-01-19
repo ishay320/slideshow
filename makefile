@@ -19,7 +19,7 @@ endif
 
 CFLAGS += $(OPT)
 
-LDFLAGS := -lglfw
+LDFLAGS := -lglfw -fopenmp
 
 CXX_SOURCES :=		\
 ./src/main.cpp		\
