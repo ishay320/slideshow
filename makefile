@@ -56,7 +56,7 @@ $(BUILD_DIR)/$(TARGET): $(OBJECTS) makefile
 -include $(DEPENDS)
 
 $(BUILD_DIR)/%.oxx: %.cpp makefile | $(BUILD_DIR)
-	$(CXX) $(WARNING) -c $(CFLAGS) -MMD -MP $(INCLUDES) $< -o $@
+	$(CXX) $(WARNING) -c $(CFLAGS) -MMD -MP $(INCLUDES) $(LDFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: %.c makefile | $(BUILD_DIR)
 	$(CC) $(WARNING) -c $(CFLAGS) -MMD -MP $(INCLUDES) $< -o $@
