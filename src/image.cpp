@@ -73,24 +73,46 @@ Image& Image::operator=(Image&& other)
     return *this;
 }
 
-void fillColor(Image& image, Pixel color)
+/*
+***********************************
+************ functions ************
+***********************************
+*/
+
+Image resize(const Image& image, int width, int height)
 {
-    for (int i = 0; i < image.getHeight(); i++)
+    Image image_out{width, height, image.getChannels()};
+
+    float height_multiplier = image.getHeight() / height;
+    float width_multiplier  = image.getWidth() / width;
+    for (int row = 0; row < height; row++)
     {
-        for (int j = 0; j < image.getWidth(); j++)
+        for (int column = 0; column < width; column++)
         {
-            Pixel* pixel = image.getPixel(i, j);
+            *image_out.getPixel(row, column) = *image.getPixel(row * height_multiplier, column * width_multiplier);
+        }
+    }
+    return image_out;
+}
+
+void fillColor(Image& image, const Pixel& color)
+{
+    for (int row = 0; row < image.getHeight(); row++)
+    {
+        for (int column = 0; column < image.getWidth(); column++)
+        {
+            Pixel* pixel = image.getPixel(row, column);
             *pixel       = color;
         }
     }
 }
 void removeChannel(Image& image, bool remove_r, bool remove_g, bool remove_b)
 {
-    for (int i = 0; i < image.getHeight(); i++)
+    for (int row = 0; row < image.getHeight(); row++)
     {
-        for (int j = 0; j < image.getWidth(); j++)
+        for (int column = 0; column < image.getWidth(); column++)
         {
-            Pixel* pixel = image.getPixel(i, j);
+            Pixel* pixel = image.getPixel(row, column);
 
             if (remove_r)
                 pixel->r = 255;
@@ -120,9 +142,9 @@ void boxBlurImage(Image& image, unsigned int radius)
         return;
     }
 
-    for (int i = 0; i < image.getHeight(); i++)
+    for (int row = 0; row < image.getHeight(); row++)
     {
-        for (int j = 0; j < image.getWidth(); j++)
+        for (int column = 0; column < image.getWidth(); column++)
         {
             int sum_r = 0;
             int sum_g = 0;
@@ -130,26 +152,26 @@ void boxBlurImage(Image& image, unsigned int radius)
             int count = 0;
             for (int k = -radius; k < (int)radius; k++)
             {
-                if (image.getHeight() <= i + k || 0 > i + k)
+                if (image.getHeight() <= row + k || 0 > row + k)
                 {
                     continue;
                 }
                 for (int l = -radius; l <= (int)radius; l++)
                 {
-                    if (image.getWidth() <= j + l || 0 > j + l)
+                    if (image.getWidth() <= column + l || 0 > column + l)
                     {
                         continue;
                     }
 
                     ++count;
-                    sum_r += image.getPixel((i + k), (j + l))->r;
-                    sum_g += image.getPixel((i + k), (j + l))->g;
-                    sum_b += image.getPixel((i + k), (j + l))->b;
+                    sum_r += image.getPixel((row + k), (column + l))->r;
+                    sum_g += image.getPixel((row + k), (column + l))->g;
+                    sum_b += image.getPixel((row + k), (column + l))->b;
                 }
             }
-            image_out.getPixel(i, j)->r = sum_r / count;
-            image_out.getPixel(i, j)->g = sum_g / count;
-            image_out.getPixel(i, j)->b = sum_b / count;
+            image_out.getPixel(row, column)->r = sum_r / count;
+            image_out.getPixel(row, column)->g = sum_g / count;
+            image_out.getPixel(row, column)->b = sum_b / count;
         }
     }
 

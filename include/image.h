@@ -57,7 +57,9 @@ private:
     bool _file = true;
 };
 
-void fillColor(Image& image, Pixel color);
+Image resize(const Image& image, int width, int height);
+
+void fillColor(Image& image, const Pixel& color);
 
 void removeChannel(Image& image, bool remove_r, bool remove_g, bool remove_b);
 
