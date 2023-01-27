@@ -19,13 +19,13 @@ void initOpenGL();
 GLFWwindow* initWindow(const char* window_name, int width, int height, GLFWframebuffersizefun window_resize_callback);
 
 // settings
-unsigned int g_screen_width  = 800;
-unsigned int g_screen_height = 600;
+const unsigned int c_screen_width  = 800;
+const unsigned int c_screen_height = 600;
 
 int main(int argc, char const* argv[])
 {
     initOpenGL();
-    GLFWwindow* window = initWindow("test name", g_screen_width, g_screen_height, framebuffersSizeCallback);
+    GLFWwindow* window = initWindow("slideshow", c_screen_width, c_screen_height, framebuffersSizeCallback);
 
     // glad: load all OpenGL function pointers
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -36,7 +36,7 @@ int main(int argc, char const* argv[])
 
     ImageRenderer image_renderer{vert_shader_file_path, frag_shader_file_path};
     image_renderer.addTriangle({0, 0}, {0, 30}, {30, 1}, {155, 155, 155, 155}, {155, 155, 155, 155}, {155, 155, 155, 155}, {0, 0}, {0, 0}, {0, 0});
-    image_renderer.setShader(0);
+    image_renderer.setShader();
     while (!glfwWindowShouldClose(window))
     {
 
@@ -83,8 +83,7 @@ void framebuffersSizeCallback(GLFWwindow* window, int width, int height)
 {
     (void)window;
     glViewport(0, 0, width, height);
-    g_screen_width  = width;
-    g_screen_height = height;
+    ImageRenderer::setResolution(glm::vec2{width, height});
 }
 
 void initOpenGL()

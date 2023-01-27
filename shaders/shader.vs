@@ -17,7 +17,8 @@ vec2 camera_project(vec2 point)
     return 2.0 * (point - camera_pos) * camera_scale / resolution;
 }
 
-void main() {
+void main()
+{
     gl_Position = vec4(camera_project(position), 0, 1);
     out_color = color;
     out_uv = uv;

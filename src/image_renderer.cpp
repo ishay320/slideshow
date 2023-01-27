@@ -1,5 +1,8 @@
 #include "image_renderer.h"
 
+// default resolution
+glm::vec2 ImageRenderer::_resolution = {600, 800};
+
 static const char* shader_type_as_cstr(GLuint shader)
 {
     switch (shader)
@@ -172,7 +175,7 @@ static void get_uniform_location(GLuint program, GLint locations[COUNT_UNIFORM_S
     }
 }
 
-void ImageRenderer::setShader(uint shader_number)
+void ImageRenderer::setShader()
 {
     glUseProgram(_program);
     get_uniform_location(_program, _uniforms);
@@ -218,4 +221,4 @@ void ImageRenderer::sync() { glBufferSubData(GL_ARRAY_BUFFER, 0, _vertices_count
 
 void ImageRenderer::draw() { glDrawArrays(GL_TRIANGLES, 0, _vertices_count); }
 
-void ImageRenderer::setResolution(glm::vec2 resolution) { _resolution = resolution; }
+void ImageRenderer::setResolution(glm::vec2 resolution) { ImageRenderer::_resolution = resolution; }

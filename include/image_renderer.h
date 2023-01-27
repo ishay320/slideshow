@@ -44,13 +44,13 @@ public:
     void addTriangle(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec4 c0, glm::vec4 c1, glm::vec4 c2, glm::vec2 uv0, glm::vec2 uv1, glm::vec2 uv2);
     void addQuad(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 c0, glm::vec4 c1, glm::vec4 c2, glm::vec4 c3, glm::vec2 uv0,
                  glm::vec2 uv1, glm::vec2 uv2, glm::vec2 uv3);
-    void setShader(uint shader_number);
+    void setShader();
     void addVertex(glm::vec2 p, glm::vec4 c, glm::vec2 uv);
     void image_rect(glm::vec2 p, glm::vec2 s, glm::vec2 uvp, glm::vec2 uvs, glm::vec4 c);
     void flush();
     void sync();
     void draw();
-    void setResolution(glm::vec2 resolution);
+    static void setResolution(glm::vec2 resolution);
     void setTime(float time);
 
 private:
@@ -63,7 +63,7 @@ private:
     Vertex _vertices[VERTICES_CAP];
     size_t _vertices_count;
 
-    glm::vec2 _resolution = {600, 800};
+    static glm::vec2 _resolution;
     float _time;
 
     glm::vec2 _camera_pos;
