@@ -21,6 +21,7 @@ inline std::string readFile(const std::string& path)
     if (!file.is_open())
     {
         std::cerr << "ERROR: could not open file \'" + path + "\': " << strerror(errno) << std::endl;
+        return "";
     }
 
     std::stringstream stream;

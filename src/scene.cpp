@@ -47,15 +47,16 @@ bool Scene::removeCamera(size_t number)
 
 void Scene::addObject(Object& object) { _objects.push_back(&object); }
 
-bool Scene::removeObject(size_t number)
+bool Scene::removeObject(size_t position)
 {
     size_t objects_size = _objects.size();
-    if (_objects.size() < number)
+    if (_objects.size() < position)
     {
         return false;
     }
 
-    _objects.erase(_objects.begin() + number);
+    _objects.at(position)->deallocate();
+    _objects.erase(_objects.begin() + position);
 
     if (objects_size == _objects.size())
     {
