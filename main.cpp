@@ -2,6 +2,7 @@
 // put GLFW after glad
 #include <GLFW/glfw3.h>
 
+#include "image.h"
 #include "image_renderer.h"
 
 #include <iostream>
@@ -35,10 +36,19 @@ int main(int argc, char const* argv[])
     }
 
     ImageRenderer image_renderer{vert_shader_file_path, frag_shader_file_path};
-    image_renderer.addTriangle({0, 0}, {0, 30}, {30, 1}, {155, 155, 155, 155}, {155, 155, 155, 155}, {155, 155, 155, 155}, {0, 0}, {0, 0}, {0, 0});
+    // image_renderer.addTriangle({0, 0}, {0, 30}, {30, 1}, {155, 155, 155, 155}, {155, 155, 155, 155}, {155, 155, 155, 155}, {0, 0}, {0, 0}, {0, 0});
+    image_renderer.addQuad({0, 0}, {0, 30}, {30, 0}, {30, 30}, {155, 155, 155, 155}, {155, 155, 155, 155}, {155, 155, 155, 155}, {155, 155, 155, 155},
+                           {0, 0}, {0, 1}, {1, 0}, {1, 1});
     image_renderer.setShader();
+
+    image_renderer.setTexture(Image{g_image_path[0]}, 0);
+    image_renderer.setTexture(Image{g_image_path[1]}, 1);
+    double last_time = glfwGetTime();
+
     while (!glfwWindowShouldClose(window))
     {
+
+        image_renderer.bindTexture((int)(glfwGetTime() - last_time) % 2);
 
         processInput(window);
 

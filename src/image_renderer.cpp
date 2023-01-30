@@ -222,3 +222,23 @@ void ImageRenderer::sync() { glBufferSubData(GL_ARRAY_BUFFER, 0, _vertices_count
 void ImageRenderer::draw() { glDrawArrays(GL_TRIANGLES, 0, _vertices_count); }
 
 void ImageRenderer::setResolution(glm::vec2 resolution) { ImageRenderer::_resolution = resolution; }
+
+void ImageRenderer::setTexture(const Image& image, size_t pos)
+{
+    glGenTextures(1, &_texture[pos]);
+
+    glBindTexture(GL_TEXTURE_2D, _texture[pos]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.getWidth(), image.getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, image.getData());
+    glGenerateMipmap(GL_TEXTURE_2D);
+}
+
+void ImageRenderer::bindTexture(size_t pos)
+{
+    glActiveTexture(GL_TEXTURE0); // if multi texture are loaded then choose
+    glBindTexture(GL_TEXTURE_2D, _texture[pos]);
+}

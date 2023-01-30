@@ -4,6 +4,7 @@
 // put GLFW after glad
 #include <GLFW/glfw3.h>
 
+#include "image.h"
 #include "utils.h"
 #include <glm/glm.hpp>
 #include <stdlib.h>
@@ -53,6 +54,9 @@ public:
     static void setResolution(glm::vec2 resolution);
     void setTime(float time);
 
+    void setTexture(const Image& image, size_t pos);
+    void bindTexture(size_t pos);
+
 private:
     GLuint _vao;
     GLuint _vbo;
@@ -68,6 +72,9 @@ private:
 
     glm::vec2 _camera_pos;
     float _camera_scale;
+
+    // TODO: dynamic array
+    unsigned int _texture[16];
 };
 
 #endif // IMAGE_RENDERER_H
