@@ -3,7 +3,7 @@
 // default resolution
 glm::vec2 ImageRenderer::_resolution = {600, 800};
 
-static const char* shader_type_as_cstr(GLuint shader)
+static const char* shaderTypeAsCstr(GLuint shader)
 {
     switch (shader)
     {
@@ -16,7 +16,7 @@ static const char* shader_type_as_cstr(GLuint shader)
     }
 }
 
-static bool compile_shader_source(const GLchar* source, GLenum shader_type, GLuint* shader)
+static bool compileShaderSource(const GLchar* source, GLenum shader_type, GLuint* shader)
 {
     *shader = glCreateShader(shader_type);
     glShaderSource(*shader, 1, &source, NULL);
@@ -30,7 +30,7 @@ static bool compile_shader_source(const GLchar* source, GLenum shader_type, GLui
         GLchar message[1024];
         GLsizei message_size = 0;
         glGetShaderInfoLog(*shader, sizeof(message), &message_size, message);
-        fprintf(stderr, "ERROR: could not compile %s\n", shader_type_as_cstr(shader_type));
+        fprintf(stderr, "ERROR: could not compile %s\n", shaderTypeAsCstr(shader_type));
         fprintf(stderr, "%.*s\n", message_size, message);
         return false;
     }
@@ -38,7 +38,7 @@ static bool compile_shader_source(const GLchar* source, GLenum shader_type, GLui
     return true;
 }
 
-static bool compile_shader_file(const char* file_path, GLenum shader_type, GLuint* shader_out)
+static bool compileShaderFile(const char* file_path, GLenum shader_type, GLuint* shader_out)
 {
     bool result            = true;
     const std::string code = utils::readFile(file_path);
@@ -50,7 +50,7 @@ static bool compile_shader_file(const char* file_path, GLenum shader_type, GLuin
     }
 
     const char* c_str = code.c_str();
-    if (!compile_shader_source(c_str, shader_type, shader_out))
+    if (!compileShaderSource(c_str, shader_type, shader_out))
     {
         fprintf(stderr, "ERROR: failed to compile `%s` shader file\n", file_path);
         return false;
@@ -58,7 +58,7 @@ static bool compile_shader_file(const char* file_path, GLenum shader_type, GLuin
     return true;
 }
 
-static void attach_shaders_to_program(GLuint* shaders, size_t shaders_count, GLuint _program)
+static void attachShadersToProgram(GLuint* shaders, size_t shaders_count, GLuint _program)
 {
     for (size_t i = 0; i < shaders_count; ++i)
     {
@@ -66,7 +66,7 @@ static void attach_shaders_to_program(GLuint* shaders, size_t shaders_count, GLu
     }
 }
 
-static bool link_program(GLuint _program, const char* file_path, size_t line)
+static bool linkProgram(GLuint _program, const char* file_path, size_t line)
 {
     glLinkProgram(_program);
 
@@ -117,18 +117,18 @@ ImageRenderer::ImageRenderer(const char* vert_shader_path, const char* frag_shad
 
         GLuint shaders[2] = {0};
 
-        if (!compile_shader_file(vert_shader_path, GL_VERTEX_SHADER, &shaders[0]))
+        if (!compileShaderFile(vert_shader_path, GL_VERTEX_SHADER, &shaders[0]))
         {
             exit(1);
         }
 
-        if (!compile_shader_file(frag_shader_path, GL_FRAGMENT_SHADER, &shaders[1]))
+        if (!compileShaderFile(frag_shader_path, GL_FRAGMENT_SHADER, &shaders[1]))
         {
             exit(1);
         }
         _program = glCreateProgram();
-        attach_shaders_to_program(shaders, sizeof(shaders) / sizeof(shaders[0]), _program);
-        if (!link_program(_program, __FILE__, __LINE__))
+        attachShadersToProgram(shaders, sizeof(shaders) / sizeof(shaders[0]), _program);
+        if (!linkProgram(_program, __FILE__, __LINE__))
         {
             exit(1);
         }
