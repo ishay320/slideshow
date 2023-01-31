@@ -49,7 +49,6 @@ static bool compileShaderSource(const GLchar* source, GLenum shader_type, GLuint
 
 static bool compileShaderFile(const char* file_path, GLenum shader_type, GLuint* shader_out)
 {
-    bool result            = true;
     const std::string code = utils::readFile(file_path);
 
     if (code == "")
