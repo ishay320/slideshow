@@ -102,6 +102,7 @@ typedef enum
 ImageRenderer::ImageRenderer(const char* vert_shader_path, const char* frag_shader_path)
 {
     _camera_scale = 3.0f;
+    _camera_pos   = {0.f, 0.f};
 
     {
         glGenVertexArrays(1, &_vao);
