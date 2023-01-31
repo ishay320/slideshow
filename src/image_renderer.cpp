@@ -1,8 +1,17 @@
 #include "image_renderer.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 // default resolution
 glm::vec2 ImageRenderer::_resolution = {600, 800};
 
+/**
+ * @brief convert shader to name
+ *
+ * @param shader
+ * @return const char*
+ */
 static const char* shaderTypeAsCstr(GLuint shader)
 {
     switch (shader)
@@ -22,10 +31,10 @@ static bool compileShaderSource(const GLchar* source, GLenum shader_type, GLuint
     glShaderSource(*shader, 1, &source, NULL);
     glCompileShader(*shader);
 
-    GLint compiled = 0;
-    glGetShaderiv(*shader, GL_COMPILE_STATUS, &compiled);
+    GLint is_compiled = 0;
+    glGetShaderiv(*shader, GL_COMPILE_STATUS, &is_compiled);
 
-    if (!compiled)
+    if (!is_compiled)
     {
         GLchar message[1024];
         GLsizei message_size = 0;
@@ -58,11 +67,11 @@ static bool compileShaderFile(const char* file_path, GLenum shader_type, GLuint*
     return true;
 }
 
-static void attachShadersToProgram(GLuint* shaders, size_t shaders_count, GLuint _program)
+static void attachShadersToProgram(GLuint* shaders, size_t shaders_count, GLuint program)
 {
     for (size_t i = 0; i < shaders_count; ++i)
     {
-        glAttachShader(_program, shaders[i]);
+        glAttachShader(program, shaders[i]);
     }
 }
 
@@ -132,6 +141,12 @@ ImageRenderer::ImageRenderer(const char* vert_shader_path, const char* frag_shad
         {
             exit(1);
         }
+        setShader();
+    }
+
+    for (size_t i = 0; i < RENDERER_MAX_IMAGES; i++)
+    {
+        resetTransform(i);
     }
 }
 
@@ -141,10 +156,10 @@ typedef struct
 {
     Uniform_Slot slot;
     const char* name;
-} Uniform_Def;
+} UniformDef;
 
-static_assert(COUNT_UNIFORM_SLOTS == 4, "The amount of the shader uniforms have change. Please update the definition table accordingly");
-static const Uniform_Def uniform_defs[COUNT_UNIFORM_SLOTS] = {
+static_assert(COUNT_UNIFORM_SLOTS == 5, "The amount of the shader uniforms have change. Please update the definition table accordingly");
+static const UniformDef uniform_defs[COUNT_UNIFORM_SLOTS] = {
     [UNIFORM_SLOT_TIME] =
         {
             .slot = UNIFORM_SLOT_TIME,
@@ -165,6 +180,11 @@ static const Uniform_Def uniform_defs[COUNT_UNIFORM_SLOTS] = {
             .slot = UNIFORM_SLOT_CAMERA_SCALE,
             .name = "camera_scale",
         },
+    [UNIFORM_SLOT_TRANSFORM] =
+        {
+            .slot = UNIFORM_SLOT_TRANSFORM,
+            .name = "transform",
+        },
 };
 
 static void get_uniform_location(GLuint program, GLint locations[COUNT_UNIFORM_SLOTS])
@@ -179,55 +199,69 @@ void ImageRenderer::setShader()
 {
     glUseProgram(_program);
     get_uniform_location(_program, _uniforms);
+
+    // Set default uniform
     glUniform2f(_uniforms[UNIFORM_SLOT_RESOLUTION], _resolution.x, _resolution.y);
     glUniform1f(_uniforms[UNIFORM_SLOT_TIME], _time);
     glUniform2f(_uniforms[UNIFORM_SLOT_CAMERA_POS], _camera_pos.x, _camera_pos.y);
     glUniform1f(_uniforms[UNIFORM_SLOT_CAMERA_SCALE], _camera_scale);
 }
 
-void ImageRenderer::addVertex(glm::vec2 p, glm::vec4 c, glm::vec2 uv)
+static void addVertex(glm::vec2 p, glm::vec4 c, glm::vec2 uv, Vertex* vertex)
 {
-    // TODO: flush the renderer on vertex buffer overflow instead firing the assert
-    assert(_vertices_count < VERTICES_CAP);
-    Vertex* last   = &_vertices[_vertices_count];
-    last->position = p;
-    last->color    = c;
-    last->uv       = uv;
-    _vertices_count += 1;
+    vertex->position = p;
+    vertex->color    = c;
+    vertex->uv       = uv;
 }
 
-void ImageRenderer::addTriangle(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec4 c0, glm::vec4 c1, glm::vec4 c2, glm::vec2 uv0, glm::vec2 uv1,
-                                glm::vec2 uv2)
+static void addTriangle(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec4 c0, glm::vec4 c1, glm::vec4 c2, glm::vec2 uv0, glm::vec2 uv1,
+                        glm::vec2 uv2, Vertex* vertex)
 {
-    addVertex(p0, c0, uv0);
-    addVertex(p1, c1, uv1);
-    addVertex(p2, c2, uv2);
-}
-void ImageRenderer::addQuad(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 c0, glm::vec4 c1, glm::vec4 c2, glm::vec4 c3,
-                            glm::vec2 uv0, glm::vec2 uv1, glm::vec2 uv2, glm::vec2 uv3)
-{
-    addTriangle(p0, p1, p2, c0, c1, c2, uv0, uv1, uv2);
-    addTriangle(p1, p2, p3, c1, c2, c3, uv1, uv2, uv3);
+    addVertex(p0, c0, uv0, vertex + 0);
+    addVertex(p1, c1, uv1, vertex + 1);
+    addVertex(p2, c2, uv2, vertex + 2);
 }
 
-void ImageRenderer::flush()
+static void addQuad(glm::vec2 p0, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 c0, glm::vec4 c1, glm::vec4 c2, glm::vec4 c3, glm::vec2 uv0,
+                    glm::vec2 uv1, glm::vec2 uv2, glm::vec2 uv3, Vertex* vertex)
 {
-    sync();
-    draw();
-    _vertices_count = 0;
+    addTriangle(p0, p1, p2, c0, c1, c2, uv0, uv1, uv2, vertex + 0);
+    addTriangle(p1, p2, p3, c1, c2, c3, uv1, uv2, uv3, vertex + 3);
 }
 
-void ImageRenderer::sync() { glBufferSubData(GL_ARRAY_BUFFER, 0, _vertices_count * sizeof(Vertex), _vertices); }
-
-void ImageRenderer::draw() { glDrawArrays(GL_TRIANGLES, 0, _vertices_count); }
-
-void ImageRenderer::setResolution(glm::vec2 resolution) { ImageRenderer::_resolution = resolution; }
-
-void ImageRenderer::setTexture(const Image& image, size_t pos)
+void ImageRenderer::drawImages()
 {
-    glGenTextures(1, &_texture[pos]);
+    glUniform2f(_uniforms[UNIFORM_SLOT_RESOLUTION], _resolution.x, _resolution.y);
+    syncVertices();
+    for (int i = _current_image - 1; i >= 0; i--)
+    {
+        bindTexture(i);
+        draw(i);
+    }
+}
 
-    glBindTexture(GL_TEXTURE_2D, _texture[pos]);
+void ImageRenderer::syncVertices()
+{
+    const size_t vertexes_to_sync = _current_image * RENDERER_QUAD_SIZE * sizeof(Vertex);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexes_to_sync, _vertices);
+}
+
+void ImageRenderer::draw(size_t image_pos)
+{
+    setTransform(image_pos);
+    glDrawArrays(GL_TRIANGLES, image_pos * RENDERER_QUAD_SIZE, RENDERER_QUAD_SIZE);
+}
+
+void ImageRenderer::setResolution(glm::vec2 resolution)
+{
+    ImageRenderer::_resolution = resolution;
+}
+
+static void setTexture(const Image& image, unsigned int* texture)
+{
+    glGenTextures(1, texture);
+
+    glBindTexture(GL_TEXTURE_2D, *texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -239,6 +273,45 @@ void ImageRenderer::setTexture(const Image& image, size_t pos)
 
 void ImageRenderer::bindTexture(size_t pos)
 {
-    glActiveTexture(GL_TEXTURE0); // if multi texture are loaded then choose
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _texture[pos]);
+}
+
+size_t ImageRenderer::pushImage(const Image& image, int x, int y)
+{
+    setTexture(image, &_texture[_current_image]);
+    // TODO: add image ratio
+    addQuad({x, x}, {x, y}, {y, x}, {y, y}, glm::vec4{0}, glm::vec4{0}, glm::vec4{0}, glm::vec4{0}, {0, 0}, {0, 1}, {1, 0}, {1, 1},
+            &_vertices[RENDERER_QUAD_SIZE * _current_image]);
+    return _current_image++;
+}
+
+void ImageRenderer::setMat4(Uniform_Slot uniform, const glm::mat4& value)
+{
+    glUniformMatrix4fv(_uniforms[uniform], 1, GL_FALSE, &value[0][0]);
+}
+
+void ImageRenderer::setTransform(size_t pos)
+{
+    setMat4(UNIFORM_SLOT_TRANSFORM, _transforms[pos]);
+}
+
+void ImageRenderer::resetTransform(size_t pos)
+{
+    _transforms[pos] = glm::mat4(1.0f); // initialize matrix to identity matrix
+}
+
+void ImageRenderer::rotate(size_t pos, float angle, const glm::vec3& rotation_vector)
+{
+    _transforms[pos] = glm::rotate(_transforms[pos], angle, rotation_vector);
+}
+
+void ImageRenderer::translate(size_t pos, const glm::vec3& translation_vector)
+{
+    _transforms[pos] = glm::translate(_transforms[pos], translation_vector);
+}
+
+void ImageRenderer::scale(size_t pos, const glm::vec3& scale_vector)
+{
+    _transforms[pos] = glm::scale(_transforms[pos], scale_vector);
 }

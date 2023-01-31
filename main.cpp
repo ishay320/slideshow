@@ -28,6 +28,8 @@ int main(int argc, char const* argv[])
     initOpenGL();
     GLFWwindow* window = initWindow("slideshow", c_screen_width, c_screen_height, framebuffersSizeCallback);
 
+    ImageRenderer::setResolution(glm::vec2{c_screen_width, c_screen_height});
+
     // glad: load all OpenGL function pointers
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -36,19 +38,13 @@ int main(int argc, char const* argv[])
     }
 
     ImageRenderer image_renderer{vert_shader_file_path, frag_shader_file_path};
-    // image_renderer.addTriangle({0, 0}, {0, 30}, {30, 1}, {155, 155, 155, 155}, {155, 155, 155, 155}, {155, 155, 155, 155}, {0, 0}, {0, 0}, {0, 0});
-    image_renderer.addQuad({0, 0}, {0, 30}, {30, 0}, {30, 30}, {155, 155, 155, 155}, {155, 155, 155, 155}, {155, 155, 155, 155}, {155, 155, 155, 155},
-                           {0, 0}, {0, 1}, {1, 0}, {1, 1});
-    image_renderer.setShader();
+    size_t pos1 = image_renderer.pushImage(Image{g_image_path[0]}, 0, 50);
+    size_t pos2 = image_renderer.pushImage(Image{g_image_path[1]}, -100, 100);
 
-    image_renderer.setTexture(Image{g_image_path[0]}, 0);
-    image_renderer.setTexture(Image{g_image_path[1]}, 1);
     double last_time = glfwGetTime();
 
     while (!glfwWindowShouldClose(window))
     {
-
-        image_renderer.bindTexture((int)(glfwGetTime() - last_time) % 2);
 
         processInput(window);
 
@@ -59,10 +55,13 @@ int main(int argc, char const* argv[])
         float cos_time = cos(glfwGetTime());
 
         // create transformations
+        image_renderer.resetTransform(0);
+        image_renderer.scale(0, {cos_time, 1, 1});
+        image_renderer.resetTransform(1);
+        image_renderer.translate(1, {sin_time, 0, 0});
 
         // render scene
-        image_renderer.sync();
-        image_renderer.draw();
+        image_renderer.drawImages();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
