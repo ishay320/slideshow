@@ -41,9 +41,16 @@ int main(void)
     size_t pos1 = image_renderer.pushImage(Image{g_image_path[0]}, 0, 50);
     size_t pos2 = image_renderer.pushImage(Image{g_image_path[1]}, -100, 100);
 
+    double time_last  = glfwGetTime();
+    int current_image = 0;
     while (!glfwWindowShouldClose(window))
     {
-
+        if (glfwGetTime() - time_last > 1.0)
+        {
+            time_last = glfwGetTime();
+            image_renderer.popImage();
+            image_renderer.pushImage(Image{g_image_path[current_image++ % 3]}, -100, 100);
+        }
         processInput(window);
 
         // background

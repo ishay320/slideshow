@@ -286,6 +286,19 @@ size_t ImageRenderer::pushImage(const Image& image, int x, int y)
     return _current_image++;
 }
 
+size_t ImageRenderer::popImage()
+{
+    if (_current_image == 0)
+    {
+        return 0;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDeleteTextures(1, &_texture[_current_image]);
+
+    return _current_image--;
+}
+
 void ImageRenderer::setMat4(Uniform_Slot uniform, const glm::mat4& value)
 {
     glUniformMatrix4fv(_uniforms[uniform], 1, GL_FALSE, &value[0][0]);

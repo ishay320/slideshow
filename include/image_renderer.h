@@ -86,8 +86,9 @@ public:
     /**
      * @brief remove the last image
      *
+     * @return size_t the "pointer" to the current biggest image location on the stack
      */
-    void popImage() { assert(false && "function not implemented yet"); }
+    size_t popImage();
 
     /**
      * @brief Change the opacity of the image at `pos` to `level`
