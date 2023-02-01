@@ -1,18 +1,26 @@
 #version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
-layout (location = 2) in vec2 aTexCoord;
 
-out vec3 addedColor;
-out vec2 TexCoord;
-
+uniform vec2 resolution;
+uniform float time;
+uniform float camera_scale;
+uniform vec2 camera_pos;
 uniform mat4 transform;
-uniform mat4 view;
-uniform mat4 projection;
+
+layout(location = 0) in vec2 position;
+layout(location = 1) in vec4 color;
+layout(location = 2) in vec2 uv;
+
+out vec4 out_color;
+out vec2 out_uv;
+
+vec2 camera_project(vec2 point)
+{
+    return 2.0 * (point - camera_pos) * camera_scale / resolution;
+}
 
 void main()
 {
-	gl_Position = projection * view * transform * vec4(aPos, 1.0);
-    addedColor  = aColor;
-    TexCoord    = aTexCoord;
+    gl_Position = vec4(camera_project(position), 0, 1) * transform;
+    out_color = color;
+    out_uv = uv;
 }

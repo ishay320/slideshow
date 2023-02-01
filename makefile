@@ -21,23 +21,18 @@ CFLAGS += $(OPT)
 
 LDFLAGS := -lglfw -fopenmp
 
-CXX_SOURCES :=		\
-./src/main.cpp		\
-./src/shader.cpp	\
-./src/texture.cpp	\
-./src/mesh.cpp		\
-./src/object.cpp	\
-./src/camera.cpp	\
-./src/scene.cpp		\
-./src/stb_image.cpp	\
-./src/image.cpp
-
+CXX_SOURCES :=			\
+./src/main.cpp			\
+./src/stb_image.cpp		\
+./src/image.cpp			\
+./src/image_renderer.cpp
 
 C_SOURCES := \
 ./src/glad.c
 
-INCLUDES := \
--I./include/
+INCLUDES := 				\
+-I./include/				\
+-I./include/third_party/
 
 DEPENDS := $(addprefix $(BUILD_DIR)/,$(notdir $(patsubst %.c,%.d,$(C_SOURCES)) $(patsubst %.cpp,%.d,$(CXX_SOURCES))))
 
