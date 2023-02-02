@@ -48,15 +48,33 @@ Image::~Image()
     }
 }
 
-int Image::getWidth() const { return _width; }
-int Image::getHeight() const { return _height; }
-int Image::getChannels() const { return _channels; }
+int Image::getWidth() const
+{
+    return _width;
+}
+int Image::getHeight() const
+{
+    return _height;
+}
+int Image::getChannels() const
+{
+    return _channels;
+}
 
-bool Image::isEmpty() const { return getData() == nullptr; }
+bool Image::isEmpty() const
+{
+    return getData() == nullptr;
+}
 
-inline Pixel* Image::getPixel(int x, int y) const { return (Pixel*)&_image_data[_channels * (x * _width + y)]; }
+inline Pixel* Image::getPixel(int x, int y) const
+{
+    return (Pixel*)&_image_data[_channels * (x * _width + y)];
+}
 
-unsigned char* Image::getData() const { return _image_data; }
+unsigned char* Image::getData() const
+{
+    return _image_data;
+}
 
 Image& Image::operator=(Image&& other)
 {

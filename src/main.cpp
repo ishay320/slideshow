@@ -23,6 +23,15 @@ GLFWwindow* initWindow(const char* window_name, int width, int height, GLFWframe
 const unsigned int c_screen_width  = 800;
 const unsigned int c_screen_height = 600;
 
+double g_image_swap_time = 3.0;
+typedef enum
+{
+    RENDER_MODE_SHOW,
+    RENDER_MODE_TRANSITION_OUT,
+    RENDER_MODE_TRANSITION_IN,
+    COUNT_RENDER_MODE
+} RendererMode;
+
 int main(void)
 {
     initOpenGL();
@@ -38,18 +47,31 @@ int main(void)
     }
 
     ImageRenderer image_renderer{vert_shader_file_path, frag_shader_file_path};
-    size_t pos1 = image_renderer.pushImage(Image{g_image_path[0]}, 0, 50);
-    size_t pos2 = image_renderer.pushImage(Image{g_image_path[1]}, -100, 100);
-
-    double time_last  = glfwGetTime();
     int current_image = 0;
+    {
+        image_renderer.pushImage(Image{g_image_path[current_image]}, 0, 50);
+        Image background = Image{g_image_path[current_image]};
+        current_image++;
+
+        fastGaussianBlur(background, 15);
+        image_renderer.pushImage(background, -100, 100);
+    }
+
+    RendererMode render_mode = RENDER_MODE_SHOW;
+    double time_last         = glfwGetTime();
     while (!glfwWindowShouldClose(window))
     {
         if (glfwGetTime() - time_last > 1.0)
         {
             time_last = glfwGetTime();
+
             image_renderer.popImage();
-            image_renderer.pushImage(Image{g_image_path[current_image++ % 3]}, -100, 100);
+            image_renderer.popImage();
+            image_renderer.pushImage(Image{g_image_path[current_image % (sizeof(g_image_path) / sizeof(*g_image_path))]}, 0, 50);
+            Image background = Image{g_image_path[current_image % (sizeof(g_image_path) / sizeof(*g_image_path))]};
+            current_image++;
+            fastGaussianBlur(background, 15);
+            image_renderer.pushImage(background, -100, 100);
         }
         processInput(window);
 
@@ -61,9 +83,9 @@ int main(void)
 
         // create transformations
         image_renderer.resetTransform(0);
-        image_renderer.scale(0, {cos_time, 1, 1});
+        image_renderer.scale(0, {cos_time, cos_time, 0});
         image_renderer.resetTransform(1);
-        image_renderer.translate(1, {sin_time, 0, 0});
+        image_renderer.translate(1, {sin_time / 10, 0, 0});
 
         // render scene
         image_renderer.drawImages();

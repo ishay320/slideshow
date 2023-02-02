@@ -326,5 +326,6 @@ void ImageRenderer::translate(size_t pos, const glm::vec3& translation_vector)
 
 void ImageRenderer::scale(size_t pos, const glm::vec3& scale_vector)
 {
+    // TODO: counter the scale with translate the rotation to the middle of the image
     _transforms[pos] = glm::scale(_transforms[pos], scale_vector);
 }
