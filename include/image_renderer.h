@@ -123,7 +123,7 @@ public:
      * @brief Rotate the image at `pos` by `angle` around `rotation_vector`
      *
      * @param pos The position of the image in the stack
-     * @param angle The angle to rotate in radians
+     * @param angle The angle to rotate in degree
      * @param rotation_vector The vector to rotate around
      */
     void rotate(size_t pos, float angle, const glm::vec3& rotation_vector);
@@ -134,7 +134,7 @@ public:
      * @param pos The position of the image in the stack
      * @param translation_vector The vector to translate by
      */
-    void translate(size_t pos, const glm::vec3& translation_vector);
+    void translate(size_t pos, const glm::vec2& translation_vector);
 
     /**
      * @brief Scale the image at `pos` by `scale_vector`
@@ -142,7 +142,7 @@ public:
      * @param pos The position of the image in the stack
      * @param scale_vector The vector to scale by
      */
-    void scale(size_t pos, const glm::vec3& scale_vector);
+    void scale(size_t pos, const glm::vec2& scale_vector);
 
 private:
     /**

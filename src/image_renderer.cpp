@@ -316,16 +316,17 @@ void ImageRenderer::resetTransform(size_t pos)
 
 void ImageRenderer::rotate(size_t pos, float angle, const glm::vec3& rotation_vector)
 {
-    _transforms[pos] = glm::rotate(_transforms[pos], angle, rotation_vector);
+    // FIXME: I`m broken
+    _transforms[pos] = glm::rotate(_transforms[pos], glm::radians(angle), rotation_vector);
 }
 
-void ImageRenderer::translate(size_t pos, const glm::vec3& translation_vector)
+void ImageRenderer::translate(size_t pos, const glm::vec2& translation_vector)
 {
-    _transforms[pos] = glm::translate(_transforms[pos], translation_vector);
+    _transforms[pos] = glm::translate(_transforms[pos], glm::vec3{translation_vector, 0.0});
 }
 
-void ImageRenderer::scale(size_t pos, const glm::vec3& scale_vector)
+void ImageRenderer::scale(size_t pos, const glm::vec2& scale_vector)
 {
     // TODO: counter the scale with translate the rotation to the middle of the image
-    _transforms[pos] = glm::scale(_transforms[pos], scale_vector);
+    _transforms[pos] = glm::scale(_transforms[pos], glm::vec3{scale_vector, 0.0});
 }
