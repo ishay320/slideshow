@@ -83,9 +83,9 @@ int main(void)
 
         // create transformations
         image_renderer.resetTransform(0);
-        image_renderer.scale(0, {cos_time, cos_time, 0});
+        image_renderer.scale(0, {cos_time, cos_time});
         image_renderer.resetTransform(1);
-        image_renderer.translate(1, {sin_time / 10, 0, 0});
+        image_renderer.translate(1, {sin_time / 10, 0});
 
         // render scene
         image_renderer.drawImages();
