@@ -314,10 +314,16 @@ void ImageRenderer::resetTransform(size_t pos)
     _transforms[pos] = glm::mat4(1.0f); // initialize matrix to identity matrix
 }
 
-void ImageRenderer::rotate(size_t pos, float angle, const glm::vec3& rotation_vector)
+void ImageRenderer::rotate(size_t pos, float angle)
 {
-    // FIXME: I`m broken
-    _transforms[pos] = glm::rotate(_transforms[pos], glm::radians(angle), rotation_vector);
+    const glm::vec3 rotation_vector = {0.0f, 0.0f, 1.0f};
+    _transforms[pos]                = glm::rotate(_transforms[pos], glm::radians(angle), rotation_vector);
+}
+
+void ImageRenderer::rotateRad(size_t pos, float angle)
+{
+    const glm::vec3 rotation_vector = {0.0f, 0.0f, 1.0f};
+    _transforms[pos]                = glm::rotate(_transforms[pos], angle, rotation_vector);
 }
 
 void ImageRenderer::translate(size_t pos, const glm::vec2& translation_vector)

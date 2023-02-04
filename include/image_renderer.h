@@ -124,9 +124,16 @@ public:
      *
      * @param pos The position of the image in the stack
      * @param angle The angle to rotate in degree
-     * @param rotation_vector The vector to rotate around
      */
-    void rotate(size_t pos, float angle, const glm::vec3& rotation_vector);
+    void rotate(size_t pos, float angle);
+
+    /**
+     * @brief Rotate the image at `pos` by `angle` around `rotation_vector`
+     *
+     * @param pos The position of the image in the stack
+     * @param angle The angle to rotate in radians
+     */
+    void rotateRad(size_t pos, float angle);
 
     /**
      * @brief Translate the image at `pos` by `translation_vector`
