@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <math.h>
+#include <string.h>
 
 Image::Image(Image&& other) : _image_data(other._image_data), _width(other._width), _height(other._height), _channels(other._channels)
 {
@@ -9,6 +10,22 @@ Image::Image(Image&& other) : _image_data(other._image_data), _width(other._widt
     other._height     = 0;
     other._channels   = 0;
     other._image_data = nullptr;
+}
+
+Image::Image() : _image_data(nullptr), _width(0), _height(0), _channels(0) {}
+
+Image::Image(const Image& other) : _width(other._width), _height(other._height), _channels(other._channels)
+{
+    const size_t image_size = _width * _height * _channels * sizeof(*_image_data);
+    _image_data             = (unsigned char*)malloc(image_size);
+    if (_image_data == NULL)
+    {
+        std::cerr << "ERROR: buy more ram, trying to malloc " << image_size << " bytes\n";
+    }
+    else
+    {
+        memcpy(_image_data, other._image_data, image_size);
+    }
 }
 
 Image::Image(const char* filename, bool flip)
@@ -88,6 +105,17 @@ Image& Image::operator=(Image&& other)
     other._height     = 0;
     other._channels   = 0;
     other._image_data = nullptr;
+
+    return *this;
+}
+
+Image& Image::operator=(const Image& other)
+{
+    this->~Image();
+    _width      = other._width;
+    _height     = other._height;
+    _channels   = other._channels;
+    _image_data = other._image_data;
 
     return *this;
 }

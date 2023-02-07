@@ -19,12 +19,39 @@ public:
      */
     Image(Image&& other);
 
+    /**
+     * @brief Construct NULL Image object
+     *
+     */
+    Image();
+
+    /**
+     * @brief Copy constructor
+     *
+     * @param other
+     */
+    Image(const Image& other);
+
+    /**
+     * @brief Open file constructor
+     *
+     * @param filename
+     * @param flip
+     */
     Image(const char* filename, bool flip = true);
 
+    /**
+     * @brief Construct a new Image object from data (will not malloc)
+     *
+     * @param image_data
+     * @param width
+     * @param height
+     * @param channels
+     */
     Image(unsigned char* image_data, int width, int height, int channels);
 
     /**
-     * @brief Construct a new empty image
+     * @brief New empty image constructor
      *
      * @param width
      * @param height
@@ -51,6 +78,14 @@ public:
      */
     Image& operator=(Image&& other);
 
+    /**
+     * @brief Copy operator
+     *
+     * @param other
+     * @return Image&
+     */
+    Image& operator=(const Image& other);
+
 private:
     unsigned char* _image_data;
     int _width, _height, _channels;
@@ -58,7 +93,7 @@ private:
 };
 
 /**
- * @brief resize the image
+ * @brief Resize the image
  *
  * @param image
  * @param width
@@ -68,7 +103,7 @@ private:
 Image resize(const Image& image, int width, int height);
 
 /**
- * @brief fill the image with selected color
+ * @brief Fill the image with selected color
  *
  * @param image
  * @param color
@@ -76,7 +111,7 @@ Image resize(const Image& image, int width, int height);
 void fillColor(Image& image, const Pixel& color);
 
 /**
- * @brief set selected color to 0
+ * @brief Set selected color to 0
  *
  * @param image
  * @param remove_r
@@ -86,7 +121,7 @@ void fillColor(Image& image, const Pixel& color);
 void removeChannel(Image& image, bool remove_r, bool remove_g, bool remove_b);
 
 /**
- * @brief fast gaussian blur
+ * @brief Fast gaussian blur
  * code from https://gist.github.com/bfraboni/946d9456b15cac3170514307cf032a27 under MIT
  *
  * @param image
@@ -95,7 +130,7 @@ void removeChannel(Image& image, bool remove_r, bool remove_g, bool remove_b);
 void fastGaussianBlur(Image& image, unsigned int radius);
 
 /**
- * @brief original box blur (slow)
+ * @brief Original box blur (slow)
  *
  * @param image IO replace with filtered
  * @param radius

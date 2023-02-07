@@ -2,6 +2,7 @@
 // put GLFW after glad
 #include <GLFW/glfw3.h>
 
+#include "file_getter.h"
 #include "image.h"
 #include "image_renderer.h"
 
@@ -34,6 +35,7 @@ typedef enum
 
 int main(void)
 {
+    // Init GLFW openGL window
     initOpenGL();
     GLFWwindow* window = initWindow("slideshow", c_screen_width, c_screen_height, framebuffersSizeCallback);
 
@@ -46,13 +48,22 @@ int main(void)
         return -1;
     }
 
-    ImageRenderer image_renderer{vert_shader_file_path, frag_shader_file_path};
-    int current_image = 0;
-    {
-        image_renderer.pushImage(Image{g_image_path[current_image]}, 0, 50);
-        Image background = Image{g_image_path[current_image]};
-        current_image++;
+    // Start of the renderer
+    const char* array[] = {".jpg", ".png"};
+    FileGetter::LocalFileGetter image_getter{".", array};
+    FileGetter::ImageBuffer image_buffer{image_getter};
 
+    image_getter.refreshDatabase();
+
+    ImageRenderer image_renderer{vert_shader_file_path, frag_shader_file_path};
+    {
+        Image image = image_buffer.getNext();
+
+        // foreground
+        image_renderer.pushImage(image, 0, 50);
+        Image background = image;
+
+        // background
         fastGaussianBlur(background, 15);
         image_renderer.pushImage(background, -100, 100);
     }
@@ -67,11 +78,17 @@ int main(void)
 
             image_renderer.popImage();
             image_renderer.popImage();
-            image_renderer.pushImage(Image{g_image_path[current_image % (sizeof(g_image_path) / sizeof(*g_image_path))]}, 0, 50);
-            Image background = Image{g_image_path[current_image % (sizeof(g_image_path) / sizeof(*g_image_path))]};
-            current_image++;
-            fastGaussianBlur(background, 15);
-            image_renderer.pushImage(background, -100, 100);
+            {
+                Image image = image_buffer.getNext();
+
+                // foreground
+                image_renderer.pushImage(image, 0, 50);
+                Image background = image;
+
+                // background
+                fastGaussianBlur(background, 15);
+                image_renderer.pushImage(background, -100, 100);
+            }
         }
         processInput(window);
 
