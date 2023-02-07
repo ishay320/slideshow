@@ -46,7 +46,6 @@ Image::Image(unsigned char* image_data, int width, int height, int channels)
 
 Image::Image(int width, int height, int channels) : _width(width), _height(height), _channels(channels)
 {
-    _file       = false;
     _image_data = (unsigned char*)malloc(_width * _height * _channels * sizeof(unsigned char));
     if (_image_data == nullptr)
     {

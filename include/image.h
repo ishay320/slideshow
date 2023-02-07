@@ -89,7 +89,6 @@ public:
 private:
     unsigned char* _image_data;
     int _width, _height, _channels;
-    bool _file = true;
 };
 
 /**

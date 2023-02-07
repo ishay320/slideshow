@@ -8,6 +8,9 @@
 
 #include <iostream>
 
+#define SIZE_OF_FOREGROUND_IMAGE 0, 50
+#define SIZE_OF_BACKGROUND_IMAGE -100, 100
+
 static const char* vert_shader_file_path = "/home/ishay320/Desktop/slideshow/shaders/shader.vs";
 static const char* frag_shader_file_path = "/home/ishay320/Desktop/slideshow/shaders/shader.fs";
 
@@ -33,6 +36,18 @@ typedef enum
     COUNT_RENDER_MODE
 } RendererMode;
 
+void swapImages(ImageRenderer& image_renderer, FileGetter::ImageBuffer& image_buffer)
+{
+    Image image      = image_buffer.getNext();
+    Image background = image;
+    fastGaussianBlur(background, 15);
+
+    image_renderer.popImage();
+    image_renderer.popImage();
+    image_renderer.pushImage(image, SIZE_OF_FOREGROUND_IMAGE);
+    image_renderer.pushImage(background, SIZE_OF_BACKGROUND_IMAGE);
+}
+
 int main(void)
 {
     // Init GLFW openGL window
@@ -56,17 +71,6 @@ int main(void)
     image_getter.refreshDatabase();
 
     ImageRenderer image_renderer{vert_shader_file_path, frag_shader_file_path};
-    {
-        Image image = image_buffer.getNext();
-
-        // foreground
-        image_renderer.pushImage(image, 0, 50);
-        Image background = image;
-
-        // background
-        fastGaussianBlur(background, 15);
-        image_renderer.pushImage(background, -100, 100);
-    }
 
     RendererMode render_mode = RENDER_MODE_SHOW;
     double time_last         = glfwGetTime();
@@ -76,33 +80,21 @@ int main(void)
         {
             time_last = glfwGetTime();
 
-            image_renderer.popImage();
-            image_renderer.popImage();
-            {
-                Image image = image_buffer.getNext();
-
-                // foreground
-                image_renderer.pushImage(image, 0, 50);
-                Image background = image;
-
-                // background
-                fastGaussianBlur(background, 15);
-                image_renderer.pushImage(background, -100, 100);
-            }
+            swapImages(image_renderer, image_buffer);
         }
         processInput(window);
 
         // background
         clearBackground();
 
-        float sin_time = sin(glfwGetTime());
-        float cos_time = cos(glfwGetTime());
+        const double time    = glfwGetTime();
+        const float sin_time = sin(time);
 
         // create transformations
         image_renderer.resetTransform(0);
-        image_renderer.rotate(0, cos_time * 100);
+        image_renderer.translate(0, {sin_time * -100.0, 0});
         image_renderer.resetTransform(1);
-        image_renderer.translate(1, {sin_time / 10, 0});
+        image_renderer.translate(1, {sin_time * 100.0, 0});
 
         // render scene
         image_renderer.drawImages();

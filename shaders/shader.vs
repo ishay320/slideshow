@@ -20,8 +20,8 @@ vec2 camera_project(vec2 point)
 
 void main()
 {
-    vec4 transform_pos = transform * vec4(position, 0, 1); 
-    gl_Position        =  vec4(camera_project(transform_pos.xy), 1.0f, 1.0f );
+    vec2 transform_pos = vec2(transform * vec4(position, 0, 1)); 
+    gl_Position        =  vec4(camera_project(transform_pos), 1.0f, 1.0f );
     out_color          = color;
     out_uv             = uv;
 }
