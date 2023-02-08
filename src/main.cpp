@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-#define SIZE_OF_FOREGROUND_IMAGE 0, 50
+#define SIZE_OF_FOREGROUND_IMAGE -50, 50
 #define SIZE_OF_BACKGROUND_IMAGE -100, 100
 
 static const char* vert_shader_file_path = "/home/ishay320/Desktop/slideshow/shaders/shader.vs";

@@ -21,6 +21,10 @@ Image::Image(const Image& other) : _width(other._width), _height(other._height),
     if (_image_data == NULL)
     {
         std::cerr << "ERROR: buy more ram, trying to malloc " << image_size << " bytes\n";
+        _image_data = nullptr;
+        _width      = 0;
+        _height     = 0;
+        _channels   = 0;
     }
     else
     {
@@ -46,7 +50,7 @@ Image::Image(unsigned char* image_data, int width, int height, int channels)
 
 Image::Image(int width, int height, int channels) : _width(width), _height(height), _channels(channels)
 {
-    _image_data = (unsigned char*)malloc(_width * _height * _channels * sizeof(unsigned char));
+    _image_data = (unsigned char*)calloc(sizeof(unsigned char), _width * _height * _channels);
     if (_image_data == nullptr)
     {
         std::cerr << __FILE__ << ':' << __LINE__ << " "
@@ -82,9 +86,9 @@ bool Image::isEmpty() const
     return getData() == nullptr;
 }
 
-inline Pixel* Image::getPixel(int x, int y) const
+inline Pixel* Image::getPixel(size_t height, size_t width) const
 {
-    return (Pixel*)&_image_data[_channels * (x * _width + y)];
+    return (Pixel*)&_image_data[_channels * (height * _width + width)];
 }
 
 unsigned char* Image::getData() const
@@ -129,13 +133,15 @@ Image resize(const Image& image, int width, int height)
 {
     Image image_out{width, height, image.getChannels()};
 
-    float height_multiplier = image.getHeight() / height;
-    float width_multiplier  = image.getWidth() / width;
+    const float height_ratio = (float)image.getHeight() / height;
+    const float width_ratio  = (float)image.getWidth() / width;
     for (int row = 0; row < height; row++)
     {
         for (int column = 0; column < width; column++)
         {
-            *image_out.getPixel(row, column) = *image.getPixel(row * height_multiplier, column * width_multiplier);
+            const int src_pos_height         = row * height_ratio;
+            const int src_pos_width          = column * width_ratio;
+            *image_out.getPixel(row, column) = *image.getPixel(src_pos_height, src_pos_width);
         }
     }
     return image_out;

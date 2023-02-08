@@ -66,7 +66,7 @@ public:
     int getChannels() const;
     unsigned char* getData() const;
 
-    inline Pixel* getPixel(int x, int y) const;
+    inline Pixel* getPixel(size_t height, size_t width) const;
 
     bool isEmpty() const;
 
