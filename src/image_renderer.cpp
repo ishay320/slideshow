@@ -280,8 +280,9 @@ void ImageRenderer::bindTexture(size_t pos)
 size_t ImageRenderer::pushImage(const Image& image, int x, int y)
 {
     setTexture(image, &_texture[_current_image]);
-    // TODO: add image ratio
-    addQuad({x, x}, {x, y}, {y, x}, {y, y}, glm::vec4{0}, glm::vec4{0}, glm::vec4{0}, glm::vec4{0}, {0, 0}, {0, 1}, {1, 0}, {1, 1},
+    const float ratio = (float)image.getWidth() / image.getHeight();
+    // TODO: better ratio - from both sides
+    addQuad({x * ratio, x}, {x * ratio, y}, {y, x}, {y, y}, glm::vec4{0}, glm::vec4{0}, glm::vec4{0}, glm::vec4{0}, {0, 0}, {0, 1}, {1, 0}, {1, 1},
             &_vertices[RENDERER_QUAD_SIZE * _current_image]);
     return _current_image++;
 }
