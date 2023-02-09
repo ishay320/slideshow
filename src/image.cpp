@@ -147,6 +147,24 @@ Image resize(const Image& image, int width, int height)
     return image_out;
 }
 
+Image resizeToMax(const Image& image, int width, int height)
+{
+    float ratio_width  = 1;
+    float ratio_height = 1;
+
+    if (image.getWidth() < image.getHeight())
+    {
+        ratio_width = ((float)height / image.getHeight());
+        width       = image.getWidth() * ratio_width;
+    }
+    else
+    {
+        ratio_height = ((float)width / image.getWidth());
+        height       = image.getHeight() * ratio_height;
+    }
+    return resize(image, width, height);
+}
+
 void fillColor(Image& image, const Pixel& color)
 {
     for (int row = 0; row < image.getHeight(); row++)

@@ -14,7 +14,7 @@
 static const char* vert_shader_file_path = "/home/ishay320/Desktop/slideshow/shaders/shader.vs";
 static const char* frag_shader_file_path = "/home/ishay320/Desktop/slideshow/shaders/shader.fs";
 
-const char* g_image_path[3] = {"pics/cat2.jpg", "pics/closup-of-cat-on-floor.jpg", "pics/inside/test.jpg"};
+const char* g_image_path[] = {"pics/cat2.jpg", "pics/closup-of-cat-on-floor.jpg", "pics/inside/test.jpg"};
 
 void framebuffersSizeCallback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -38,8 +38,11 @@ typedef enum
 
 void swapImages(ImageRenderer& image_renderer, FileGetter::ImageBuffer& image_buffer)
 {
-    Image image      = image_buffer.getNext();
-    Image background = image;
+    const size_t width  = 1920;
+    const size_t height = 1080;
+    Image image         = resizeToMax(image_buffer.getNext(), width, height);
+
+    Image background{image};
     fastGaussianBlur(background, 15);
 
     image_renderer.popImage();

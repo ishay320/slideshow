@@ -97,9 +97,19 @@ private:
  * @param image
  * @param width
  * @param height
- * @return Image
+ * @return Image new image
  */
 Image resize(const Image& image, int width, int height);
+
+/**
+ * @brief Resize the image to max the params and not go beyond, but still keep the original ratio
+ *
+ * @param image
+ * @param width max width
+ * @param height max height
+ * @return Image new image
+ */
+Image resizeToMax(const Image& image, int width, int height);
 
 /**
  * @brief Fill the image with selected color

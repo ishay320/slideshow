@@ -15,7 +15,8 @@ LocalFileGetter::~LocalFileGetter() {}
 
 bool LocalFileGetter::refreshDatabase()
 {
-    // TODO: Implement this
+// TODO: Implement this
+#pragma warning("Implement this")
     const char* array[] = {"pics/cat2.jpg", "pics/closup-of-cat-on-floor.jpg", "pics/inside/test.jpg"};
     for (size_t i = 0; i < 3; i++)
     {
