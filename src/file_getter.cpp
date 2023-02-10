@@ -1,26 +1,36 @@
 #include "file_getter.h"
 
+#include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <unistd.h>
 
 namespace FileGetter
 {
 
-LocalFileGetter::LocalFileGetter(const char* base_folder, const char* types[])
+LocalFileGetter::LocalFileGetter(const char* base_folder, const char* types[], size_t types_len)
+    : _base_folder(base_folder), _types(types), _types_len(types_len)
 {
-    (void)base_folder;
-    (void)types;
 }
+
 LocalFileGetter::~LocalFileGetter() {}
 
 bool LocalFileGetter::refreshDatabase()
 {
-// TODO: Implement this
-#pragma warning("Implement this")
-    const char* array[] = {"pics/cat2.jpg", "pics/closup-of-cat-on-floor.jpg", "pics/inside/test.jpg"};
-    for (size_t i = 0; i < 3; i++)
+    if (!std::filesystem::exists(_base_folder))
     {
-        _files_path.push_back(array[i]);
+        return false;
+    }
+
+    for (const auto& dir_entry : std::filesystem::recursive_directory_iterator{_base_folder})
+    {
+        for (size_t i = 0; i < _types_len; i++)
+        {
+            if (!strcmp(dir_entry.path().extension().c_str(), _types[i]))
+            {
+                _files_path.push_back(dir_entry.path());
+            }
+        }
     }
     return true;
 }
