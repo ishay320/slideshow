@@ -20,7 +20,7 @@ public:
 class LocalFileGetter : public FileGetter
 {
 public:
-    LocalFileGetter(const char* base_folder, const char* types[]);
+    LocalFileGetter(const char* base_folder, const char* types[], size_t types_len);
     ~LocalFileGetter();
 
     virtual bool refreshDatabase();
@@ -30,8 +30,9 @@ public:
 private:
     std::string getNextPath();
 
-    char* base_folder;
-    char** types;
+    const char* _base_folder;
+    const char** _types;
+    size_t _types_len;
 
     size_t _pos = 0;
     std::vector<std::string> _files_path;

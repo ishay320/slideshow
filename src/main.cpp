@@ -67,8 +67,8 @@ int main(void)
     }
 
     // Start of the renderer
-    const char* array[] = {".jpg", ".png"};
-    FileGetter::LocalFileGetter image_getter{".", array};
+    const char* types[] = {".jpg", ".png"};
+    FileGetter::LocalFileGetter image_getter{".", types, sizeof(types) / sizeof(*types)};
     FileGetter::ImageBuffer image_buffer{image_getter};
 
     image_getter.refreshDatabase();
