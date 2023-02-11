@@ -6,6 +6,8 @@
 #include "image.h"
 #include "image_renderer.h"
 
+#include <array>
+#include <future>
 #include <iostream>
 
 #define SIZE_OF_FOREGROUND_IMAGE -50, 50
@@ -36,8 +38,9 @@ typedef enum
     COUNT_RENDER_MODE
 } RendererMode;
 
-void swapImages(ImageRenderer& image_renderer, FileGetter::ImageBuffer& image_buffer)
+std::array<Image, 2> swapImages(FileGetter::ImageBuffer& image_buffer)
 {
+    std::array<Image, 2> out;
     const size_t width  = 1920;
     const size_t height = 1080;
     Image image         = resizeToMax(image_buffer.getNext(), width, height);
@@ -45,10 +48,9 @@ void swapImages(ImageRenderer& image_renderer, FileGetter::ImageBuffer& image_bu
     Image background{image};
     fastGaussianBlur(background, 15);
 
-    image_renderer.popImage();
-    image_renderer.popImage();
-    image_renderer.pushImage(image, SIZE_OF_FOREGROUND_IMAGE);
-    image_renderer.pushImage(background, SIZE_OF_BACKGROUND_IMAGE);
+    out[0] = std::move(image);
+    out[1] = std::move(background);
+    return out;
 }
 
 int main(void)
@@ -77,14 +79,31 @@ int main(void)
 
     RendererMode render_mode = RENDER_MODE_SHOW;
     double time_last         = glfwGetTime();
+
+    std::future<std::array<Image, 2>> images_async;
     while (!glfwWindowShouldClose(window))
     {
+        // Load the new images and replace the old ones asyncly
         if (glfwGetTime() - time_last > 1.0)
         {
-            time_last = glfwGetTime();
+            if (!images_async.valid())
+            {
+                images_async = std::async(swapImages, std::ref(image_buffer));
+            }
 
-            swapImages(image_renderer, image_buffer);
+            using namespace std::chrono_literals;
+            if (images_async.wait_for(0ms) == std::future_status::ready)
+            {
+                time_last                   = glfwGetTime();
+                std::array<Image, 2> images = images_async.get();
+
+                image_renderer.popImage();
+                image_renderer.popImage();
+                image_renderer.pushImage(images[0], SIZE_OF_FOREGROUND_IMAGE);
+                image_renderer.pushImage(images[1], SIZE_OF_BACKGROUND_IMAGE);
+            }
         }
+
         processInput(window);
 
         // background
