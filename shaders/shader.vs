@@ -5,11 +5,13 @@ layout(location = 1) in vec4 color;
 layout(location = 2) in vec2 uv;
 
 uniform vec2 resolution;
+uniform float opacity;
 uniform float time;
 uniform float camera_scale;
 uniform vec2 camera_pos;
 uniform mat4 transform;
 
+out float out_opacity;
 out vec4 out_color;
 out vec2 out_uv;
 
@@ -21,7 +23,8 @@ vec2 camera_project(vec2 point)
 void main()
 {
     vec2 transform_pos = vec2(transform * vec4(position, 0, 1)); 
-    gl_Position        =  vec4(camera_project(transform_pos), 1.0f, 1.0f );
+    gl_Position        = vec4(camera_project(transform_pos), 1.0f, 1.0f );
     out_color          = color;
+    out_opacity        = opacity;
     out_uv             = uv;
 }

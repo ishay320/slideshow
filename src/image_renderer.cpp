@@ -158,7 +158,7 @@ typedef struct
     const char* name;
 } UniformDef;
 
-static_assert(COUNT_UNIFORM_SLOTS == 5, "The amount of the shader uniforms have change. Please update the definition table accordingly");
+static_assert(COUNT_UNIFORM_SLOTS == 6, "The amount of the shader uniforms have change. Please update the definition table accordingly");
 static const UniformDef uniform_defs[COUNT_UNIFORM_SLOTS] = {
     [UNIFORM_SLOT_TIME] =
         {
@@ -185,6 +185,11 @@ static const UniformDef uniform_defs[COUNT_UNIFORM_SLOTS] = {
             .slot = UNIFORM_SLOT_TRANSFORM,
             .name = "transform",
         },
+    [UNIFORM_SLOT_OPACITY] =
+        {
+            .slot = UNIFORM_SLOT_OPACITY,
+            .name = "opacity",
+        },
 };
 
 static void get_uniform_location(GLuint program, GLint locations[COUNT_UNIFORM_SLOTS])
@@ -205,6 +210,10 @@ void ImageRenderer::setShader()
     glUniform1f(_uniforms[UNIFORM_SLOT_TIME], _time);
     glUniform2f(_uniforms[UNIFORM_SLOT_CAMERA_POS], _camera_pos.x, _camera_pos.y);
     glUniform1f(_uniforms[UNIFORM_SLOT_CAMERA_SCALE], _camera_scale);
+
+    // Enable opacity
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 static void addVertex(glm::vec2 p, glm::vec4 c, glm::vec2 uv, Vertex* vertex)
@@ -312,6 +321,11 @@ void ImageRenderer::setMat4(Uniform_Slot uniform, const glm::mat4& value)
 void ImageRenderer::setTransform(size_t pos)
 {
     setMat4(UNIFORM_SLOT_TRANSFORM, _transforms[pos]);
+}
+
+void ImageRenderer::setOpacity(float opacity)
+{
+    glUniform1f(_uniforms[UNIFORM_SLOT_OPACITY], opacity);
 }
 
 void ImageRenderer::resetTransform(size_t pos)

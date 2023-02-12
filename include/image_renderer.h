@@ -33,6 +33,7 @@ typedef enum
     UNIFORM_SLOT_CAMERA_POS,
     UNIFORM_SLOT_CAMERA_SCALE,
     UNIFORM_SLOT_TRANSFORM,
+    UNIFORM_SLOT_OPACITY,
     COUNT_UNIFORM_SLOTS,
 } Uniform_Slot;
 
@@ -66,6 +67,13 @@ public:
      * @param time The new time value
      */
     void setTime(float time);
+
+    /**
+     * @brief Set the opacity uniform value in the shader
+     *
+     * @param opacity The new opacity value
+     */
+    void setOpacity(float opacity);
 
     /**
      * @brief Draw all images on the stack

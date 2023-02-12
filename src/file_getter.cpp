@@ -1,4 +1,5 @@
 #include "file_getter.h"
+#include "inline_logger.h"
 
 #include <cstring>
 #include <filesystem>
@@ -86,6 +87,7 @@ size_t ImageBuffer::pushNextImageToBuffer()
 
 void ImageBuffer::runInBackground(ImageBuffer* image_buffer)
 {
+    LOG_INFO("ImageBuffer running in background");
     while (image_buffer->_run_in_background)
     {
         if (image_buffer->sizeOfBuffer() > 2)
@@ -97,6 +99,7 @@ void ImageBuffer::runInBackground(ImageBuffer* image_buffer)
             image_buffer->pushNextImageToBuffer();
         }
     }
+    LOG_WARNING("ImageBuffer thread killed");
 }
 
 } // namespace FileGetter

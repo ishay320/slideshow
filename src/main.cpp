@@ -5,6 +5,7 @@
 #include "file_getter.h"
 #include "image.h"
 #include "image_renderer.h"
+#include "inline_logger.h"
 
 #include <array>
 #include <future>
@@ -43,12 +44,18 @@ std::array<Image, 2> swapImages(FileGetter::ImageBuffer& image_buffer)
     std::array<Image, 2> out;
     const size_t width  = 1920;
     const size_t height = 1080;
-    Image image         = resizeToMax(image_buffer.getNext(), width, height);
+    Image image         = image_buffer.getNext();
+    if (image.isEmpty())
+    {
+        LOG_WARNING("image buffer is empty");
+        return out;
+    }
+    Image image_resized = resizeToMax(image, width, height);
 
-    Image background{image};
+    Image background{image_resized};
     fastGaussianBlur(background, 15);
 
-    out[0] = std::move(image);
+    out[0] = std::move(image_resized);
     out[1] = std::move(background);
     return out;
 }
@@ -103,6 +110,10 @@ int main(void)
                 image_renderer.pushImage(images[1], SIZE_OF_BACKGROUND_IMAGE);
             }
         }
+
+        auto opacity_fx = [](double x) -> double { return -4 * (x - (1.0f / 2.0f)) * ((x - (1.0f / 2.0f))) + 1; };
+        float opacity   = opacity_fx(glfwGetTime() - time_last);
+        image_renderer.setOpacity(opacity);
 
         processInput(window);
 

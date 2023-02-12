@@ -56,7 +56,7 @@ private:
 
     std::queue<Image> _buffer;
 
-    bool _run_in_background;
+    bool _run_in_background = true;
     std::thread _background_thread;
 };
 
