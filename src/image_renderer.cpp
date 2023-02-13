@@ -144,10 +144,12 @@ ImageRenderer::ImageRenderer(const char* vert_shader_path, const char* frag_shad
         setShader();
     }
 
+    // Default for unify
     for (size_t i = 0; i < RENDERER_MAX_IMAGES; i++)
     {
         resetTransform(i);
     }
+    setOpacity(1);
 }
 
 ImageRenderer::~ImageRenderer() {}

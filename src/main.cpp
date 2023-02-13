@@ -2,6 +2,7 @@
 // put GLFW after glad
 #include <GLFW/glfw3.h>
 
+#include "effect.h"
 #include "file_getter.h"
 #include "image.h"
 #include "image_renderer.h"
@@ -30,35 +31,7 @@ GLFWwindow* initWindow(const char* window_name, int width, int height, GLFWframe
 const unsigned int c_screen_width  = 800;
 const unsigned int c_screen_height = 600;
 
-double g_image_swap_time = 3.0;
-typedef enum
-{
-    RENDER_MODE_SHOW,
-    RENDER_MODE_TRANSITION_OUT,
-    RENDER_MODE_TRANSITION_IN,
-    COUNT_RENDER_MODE
-} RendererMode;
-
-std::array<Image, 2> swapImages(FileGetter::ImageBuffer& image_buffer)
-{
-    std::array<Image, 2> out;
-    const size_t width  = 1920;
-    const size_t height = 1080;
-    Image image         = image_buffer.getNext();
-    if (image.isEmpty())
-    {
-        LOG_WARNING("image buffer is empty");
-        return out;
-    }
-    Image image_resized = resizeToMax(image, width, height);
-
-    Image background{image_resized};
-    fastGaussianBlur(background, 15);
-
-    out[0] = std::move(image_resized);
-    out[1] = std::move(background);
-    return out;
-}
+const double c_image_swap_time = 5.0;
 
 int main(void)
 {
@@ -84,53 +57,20 @@ int main(void)
 
     ImageRenderer image_renderer{vert_shader_file_path, frag_shader_file_path};
 
-    RendererMode render_mode = RENDER_MODE_SHOW;
-    double time_last         = glfwGetTime();
+    Effect effect(image_renderer, image_buffer, c_image_swap_time);
 
     std::future<std::array<Image, 2>> images_async;
     while (!glfwWindowShouldClose(window))
     {
-        // Load the new images and replace the old ones asyncly
-        if (glfwGetTime() - time_last > 1.0)
-        {
-            if (!images_async.valid())
-            {
-                images_async = std::async(swapImages, std::ref(image_buffer));
-            }
-
-            using namespace std::chrono_literals;
-            if (images_async.wait_for(0ms) == std::future_status::ready)
-            {
-                time_last                   = glfwGetTime();
-                std::array<Image, 2> images = images_async.get();
-
-                image_renderer.popImage();
-                image_renderer.popImage();
-                image_renderer.pushImage(images[0], SIZE_OF_FOREGROUND_IMAGE);
-                image_renderer.pushImage(images[1], SIZE_OF_BACKGROUND_IMAGE);
-            }
-        }
-
-        auto opacity_fx = [](double x) -> double { return -4 * (x - (1.0f / 2.0f)) * ((x - (1.0f / 2.0f))) + 1; };
-        float opacity   = opacity_fx(glfwGetTime() - time_last);
-        image_renderer.setOpacity(opacity);
-
         processInput(window);
 
         // background
         clearBackground();
 
-        const double time    = glfwGetTime();
-        const float sin_time = sin(time);
-
-        // create transformations
-        image_renderer.resetTransform(0);
-        image_renderer.translate(0, {sin_time * -100.0, 0});
-        image_renderer.resetTransform(1);
-        image_renderer.translate(1, {sin_time * 100.0, 0});
+        effect.update();
 
         // render scene
-        image_renderer.drawImages();
+        effect.render();
 
         glfwSwapBuffers(window);
         glfwPollEvents();

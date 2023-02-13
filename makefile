@@ -26,7 +26,8 @@ CXX_SOURCES :=			\
 ./src/stb_image.cpp		\
 ./src/image.cpp			\
 ./src/image_renderer.cpp\
-./src/file_getter.cpp
+./src/file_getter.cpp	\
+./src/effect.cpp
 
 C_SOURCES := \
 ./src/glad.c
