@@ -38,7 +38,7 @@ INCLUDES := 				\
 
 # Generic from here
 
-DEPENDS := $(addprefix $(BUILD_DIR)/,$(notdir $(patsubst %.c,%.d,$(C_SOURCES)) $(patsubst %.cpp,%.d,$(CXX_SOURCES))))
+DEPENDS := $(addprefix $(BUILD_DIR)/,$(notdir $(addsuffix .d,$(C_SOURCES)) $(addsuffix .d,$(CXX_SOURCES))))
 
 # list of objects
 CXX_OBJECTS := $(addprefix $(BUILD_DIR)/,$(notdir $(addsuffix .o, $(CXX_SOURCES))))
