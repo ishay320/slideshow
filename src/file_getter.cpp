@@ -79,6 +79,11 @@ size_t ImageBuffer::sizeOfBuffer()
     return _buffer.size();
 }
 
+bool ImageBuffer::empty()
+{
+    return _buffer.empty();
+}
+
 size_t ImageBuffer::pushNextImageToBuffer()
 {
     _buffer.push(_file_getter.getNext());
@@ -87,7 +92,7 @@ size_t ImageBuffer::pushNextImageToBuffer()
 
 void ImageBuffer::runInBackground(ImageBuffer* image_buffer)
 {
-    LOG_INFO("ImageBuffer running in background");
+    LOG_INFO("'ImageBuffer' started running in background");
     while (image_buffer->_run_in_background)
     {
         if (image_buffer->sizeOfBuffer() > 2)
@@ -99,7 +104,7 @@ void ImageBuffer::runInBackground(ImageBuffer* image_buffer)
             image_buffer->pushNextImageToBuffer();
         }
     }
-    LOG_WARNING("ImageBuffer thread killed");
+    LOG_INFO("'ImageBuffer' thread killed");
 }
 
 } // namespace FileGetter

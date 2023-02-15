@@ -10,6 +10,7 @@ Effect::Effect(ImageRenderer& image_renderer, FileGetter::ImageBuffer& image_buf
     : _image_renderer(image_renderer), _image_buffer(image_buffer), _slide_time(slide_time)
 {
     _start_time = glfwGetTime() - _slide_time;
+    _image_renderer.setOpacity(_opacity);
 }
 
 Effect::~Effect() {}
@@ -27,7 +28,7 @@ void Effect::update()
             _image_renderer.setOpacity(_opacity);
             break;
         case RendererMode::RENDER_MODE_SHOW:
-            // TODO: Implement this
+            // Do nothing
             break;
         case RendererMode::RENDER_MODE_DONE:
             updateImages();
@@ -38,6 +39,7 @@ void Effect::update()
     }
     updatePos();
 }
+
 void Effect::render()
 {
     _image_renderer.drawImages();
@@ -47,6 +49,11 @@ void Effect::updateImages()
 {
     if (!_images_async.valid())
     {
+        // Images did not loaded in the buffer
+        if (_image_buffer.empty())
+        {
+            return;
+        }
         _images_async = std::async(swapImages, std::ref(_image_buffer));
     }
 
@@ -54,11 +61,6 @@ void Effect::updateImages()
     if (_images_async.wait_for(0ms) == std::future_status::ready)
     {
         std::array<Image, 2> images = _images_async.get();
-        if (images[0].isEmpty())
-        {
-            // Images did not loaded in the buffer - do retry
-            return;
-        }
 
         _image_renderer.popImage();
         _image_renderer.popImage();
@@ -99,6 +101,12 @@ Effect::RendererMode Effect::checkEffectTime()
 
 /* ******** */
 
+/**
+ * @brief Gets images from buffer and process them
+ *
+ * @param image_buffer
+ * @return std::array<Image, 2> empty images if buffer returned empty image
+ */
 static std::array<Image, 2> swapImages(FileGetter::ImageBuffer& image_buffer)
 {
     std::array<Image, 2> out;
@@ -107,8 +115,7 @@ static std::array<Image, 2> swapImages(FileGetter::ImageBuffer& image_buffer)
     Image image         = image_buffer.getNext();
     if (image.isEmpty())
     {
-        // TODO: return null
-        LOG_WARNING("image buffer is empty");
+        LOG_WARNING("images are empty");
         return out;
     }
     Image image_resized = resizeToMax(image, width, height);

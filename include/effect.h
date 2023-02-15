@@ -22,7 +22,7 @@ private:
 
     typedef enum
     {
-        RENDER_MODE_SHOW,
+        RENDER_MODE_SHOW = 0,
         RENDER_MODE_DONE,
         RENDER_MODE_TRANSITION_OUT,
         RENDER_MODE_TRANSITION_IN,
@@ -37,7 +37,7 @@ private:
     double _start_time;         /* The time that the current slide started */
     float _slide_time;          /* The time that the whole slide takes */
     float _transition_time = 1; /* Transition time - start and end */
-    float _opacity;             /* Current opacity */
+    float _opacity         = 0; /* Current opacity */
 
     std::future<std::array<Image, 2>> _images_async;
 };

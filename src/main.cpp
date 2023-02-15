@@ -12,13 +12,8 @@
 #include <future>
 #include <iostream>
 
-#define SIZE_OF_FOREGROUND_IMAGE -50, 50
-#define SIZE_OF_BACKGROUND_IMAGE -100, 100
-
 static const char* vert_shader_file_path = "/home/ishay320/Desktop/slideshow/shaders/shader.vs";
 static const char* frag_shader_file_path = "/home/ishay320/Desktop/slideshow/shaders/shader.fs";
-
-const char* g_image_path[] = {"pics/cat2.jpg", "pics/closup-of-cat-on-floor.jpg", "pics/inside/test.jpg"};
 
 void framebuffersSizeCallback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);

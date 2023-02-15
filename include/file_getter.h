@@ -47,6 +47,7 @@ public:
     Image getNext();
 
     size_t sizeOfBuffer();
+    bool empty();
 
     size_t pushNextImageToBuffer();
     static void runInBackground(ImageBuffer* image_buffer);
