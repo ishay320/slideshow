@@ -268,6 +268,11 @@ void ImageRenderer::setResolution(glm::vec2 resolution)
     ImageRenderer::_resolution = resolution;
 }
 
+glm::vec2 ImageRenderer::getResolution()
+{
+    return _resolution;
+}
+
 static void setTexture(const Image& image, unsigned int* texture)
 {
     glGenTextures(1, texture);

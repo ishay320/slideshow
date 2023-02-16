@@ -7,6 +7,16 @@
 #include <array>
 #include <future>
 
+#define EFFECT_IMAGES_NUM 2
+
+typedef struct
+{
+    float pos_x;
+    float pos_y;
+    float vel_x;
+    float vel_y;
+} Movement;
+
 class Effect
 {
 public:
@@ -19,8 +29,10 @@ public:
 private:
     void updateImages();
     void updatePos();
+    void setNewMovement();
+    void updateMovement();
 
-    typedef enum
+    typedef enum // TODO: add start transition mode that runs once for hot swap images
     {
         RENDER_MODE_SHOW = 0,
         RENDER_MODE_DONE,
@@ -39,7 +51,9 @@ private:
     float _transition_time = 1; /* Transition time - start and end */
     float _opacity         = 0; /* Current opacity */
 
-    std::future<std::array<Image, 2>> _images_async;
+    Movement _movements[EFFECT_IMAGES_NUM];
+
+    std::future<std::array<Image, EFFECT_IMAGES_NUM>> _images_async;
 };
 
 #endif // EFFECT_H

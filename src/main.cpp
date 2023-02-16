@@ -59,9 +59,6 @@ int main(void)
     {
         processInput(window);
 
-        // background
-        clearBackground();
-
         effect.update();
 
         // render scene
@@ -70,8 +67,6 @@ int main(void)
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
-    // object.deallocate();
 
     glfwTerminate();
 
@@ -84,12 +79,6 @@ void processInput(GLFWwindow* window)
     {
         glfwSetWindowShouldClose(window, true);
     }
-}
-
-void clearBackground()
-{
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void framebuffersSizeCallback(GLFWwindow* window, int width, int height)

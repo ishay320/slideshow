@@ -1,10 +1,11 @@
 #include "effect.h"
 #include "inline_logger.h"
 
-#define SIZE_OF_FOREGROUND_IMAGE -50, 50
-#define SIZE_OF_BACKGROUND_IMAGE -100, 100
+#define SIZE_OF_FOREGROUND_IMAGE -100, 100
+#define SIZE_OF_BACKGROUND_IMAGE -300, 300
 
-static std::array<Image, 2> swapImages(FileGetter::ImageBuffer& image_buffer);
+static std::array<Image, 2> getAndProcessImages(FileGetter::ImageBuffer& image_buffer, glm::vec2 resolution);
+static void clearBackground();
 
 Effect::Effect(ImageRenderer& image_renderer, FileGetter::ImageBuffer& image_buffer, float slide_time)
     : _image_renderer(image_renderer), _image_buffer(image_buffer), _slide_time(slide_time)
@@ -14,6 +15,33 @@ Effect::Effect(ImageRenderer& image_renderer, FileGetter::ImageBuffer& image_buf
 }
 
 Effect::~Effect() {}
+
+void Effect::setNewMovement()
+{
+#if 1
+    // set for specific effect
+    const float vel_x = (rand() % 20 - 10) / 40.f;
+    const float vel_y = (rand() % 20 - 10) / 60.f;
+
+    _movements[0].pos_x = 0;
+    _movements[0].pos_y = 0;
+    _movements[0].vel_x = vel_x;
+    _movements[0].vel_y = vel_y;
+
+    _movements[1].pos_x = 0;
+    _movements[1].pos_y = 0;
+    _movements[1].vel_x = -vel_x / 2.0f;
+    _movements[1].vel_y = -vel_y / 2.0f;
+#else
+    for (size_t i = 0; i < EFFECT_IMAGES_NUM; i++)
+    {
+        _movements[i].pos_x = 0;
+        _movements[i].pos_y = 0;
+        _movements[i].vel_x = (rand() % 20 - 10) / 40.f;
+        _movements[i].vel_y = (rand() % 20 - 10) / 60.f;
+    }
+#endif
+}
 
 void Effect::update()
 {
@@ -32,6 +60,7 @@ void Effect::update()
             break;
         case RendererMode::RENDER_MODE_DONE:
             updateImages();
+            setNewMovement();
             break;
 
         default:
@@ -42,6 +71,8 @@ void Effect::update()
 
 void Effect::render()
 {
+    clearBackground();
+
     _image_renderer.drawImages();
 }
 
@@ -54,7 +85,7 @@ void Effect::updateImages()
         {
             return;
         }
-        _images_async = std::async(swapImages, std::ref(_image_buffer));
+        _images_async = std::async(getAndProcessImages, std::ref(_image_buffer), _image_renderer.getResolution());
     }
 
     using namespace std::chrono_literals;
@@ -71,16 +102,26 @@ void Effect::updateImages()
     }
 }
 
+void Effect::updateMovement()
+{
+    for (size_t i = 0; i < EFFECT_IMAGES_NUM; i++)
+    {
+        _movements[i].pos_x += _movements[i].vel_x;
+        _movements[i].pos_y += _movements[i].vel_y;
+    }
+}
 void Effect::updatePos()
 {
-    const double time    = glfwGetTime();
-    const float sin_time = sin(time);
+    const double time = glfwGetTime();
+    updateMovement();
 
     // create transformations
-    _image_renderer.resetTransform(0);
-    _image_renderer.translate(0, {sin_time * -100.0, 0});
-    _image_renderer.resetTransform(1);
-    _image_renderer.translate(1, {sin_time * 100.0, 0});
+    size_t image_num = 0;
+    _image_renderer.resetTransform(image_num);
+    _image_renderer.translate(image_num, {_movements[image_num].pos_x, _movements[image_num].pos_y});
+    image_num++;
+    _image_renderer.resetTransform(image_num);
+    _image_renderer.translate(image_num, {_movements[image_num].pos_x, _movements[image_num].pos_y});
 }
 
 Effect::RendererMode Effect::checkEffectTime()
@@ -99,19 +140,22 @@ Effect::RendererMode Effect::checkEffectTime()
     return RendererMode::RENDER_MODE_SHOW;
 }
 
-/* ******** */
+/* ************************** */
+/* **** static functions **** */
+/* ************************** */
 
 /**
  * @brief Gets images from buffer and process them
  *
- * @param image_buffer
+ * @param image_buffer buffer to pull images from
+ * @param resolution image max resolution
  * @return std::array<Image, 2> empty images if buffer returned empty image
  */
-static std::array<Image, 2> swapImages(FileGetter::ImageBuffer& image_buffer)
+static std::array<Image, 2> getAndProcessImages(FileGetter::ImageBuffer& image_buffer, glm::vec2 resolution)
 {
     std::array<Image, 2> out;
-    const size_t width  = 1920;
-    const size_t height = 1080;
+    const size_t width  = resolution.x;
+    const size_t height = resolution.y;
     Image image         = image_buffer.getNext();
     if (image.isEmpty())
     {
@@ -127,3 +171,12 @@ static std::array<Image, 2> swapImages(FileGetter::ImageBuffer& image_buffer)
     out[1] = std::move(background);
     return out;
 }
+
+static void clearBackground()
+{
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+}
+
+// TODO: replace images with new images and do not go to black screen
+// TODO: add zoom effect

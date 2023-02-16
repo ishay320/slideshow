@@ -62,6 +62,13 @@ public:
     static void setResolution(glm::vec2 resolution);
 
     /**
+     * @brief Get current resolution
+     *
+     * @return glm::vec2
+     */
+    glm::vec2 getResolution();
+
+    /**
      * @brief Set the time uniform value in the shader
      *
      * @param time The new time value
