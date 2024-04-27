@@ -2,5 +2,5 @@ main
 raylib
 compile_commands.json
 .cache
-
+data
 
