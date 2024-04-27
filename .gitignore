@@ -1,6 +1,6 @@
-./main
-./raylib
-./compile_commands.json
-./.cache
+main
+raylib
+compile_commands.json
+.cache
 
 
