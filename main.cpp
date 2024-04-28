@@ -51,8 +51,6 @@ std::vector<std::filesystem::path> getFilesByTypes(
     return out;
 }
 
-// get random file
-// get image (char**)
 class FileGetter {
    public:
     FileGetter(const std::string& path, const std::vector<std::string>& types)
@@ -81,6 +79,8 @@ class TextureWrapper {
                                                     path, std::error_code());
         }
     }
+
+    // FIXME: I`m broken
     ~TextureWrapper() { UnloadTexture(_texture); }
 
     Texture texture() { return _texture; }
@@ -94,7 +94,7 @@ class GetTextureWrapper {
     GetTextureWrapper(FileGetter files_getter) : _files_getter(files_getter) {}
     ~GetTextureWrapper() = default;
 
-    TextureWrapper getNext();
+    TextureWrapper getNext() { return {_files_getter.getNext()}; }
 
    private:
     FileGetter _files_getter;
@@ -103,22 +103,30 @@ class GetTextureWrapper {
 // steps:
 // [ ] 1. check updates online
 // [ ] 2. check config for folders of images
-// [ ] 3. create class of files
-// [ ] 4. create class of texture getter
+// [x] 3. create class of files
+// [x] 4. create class of texture getter
 // [ ] 5. create class of effect
 // [ ] 6. loop til the world end
 int main(int argc, char* argv[])
 {
+    struct {
+        int swap_time = 5;
+        std::vector<std::string> file_types{"png", "jpg"};
+        int fps = 30;
+    } config;
+
     InitWindow(800, 450, "slideshow");
     const int display = GetCurrentMonitor();
     SetWindowSize(GetMonitorWidth(display), GetMonitorHeight(display));
+    SetTargetFPS(config.fps);
     ToggleFullscreen();
-    SetTargetFPS(30);
 
-    FileGetter fg{".", {"png", "jpg"}};
-    TextureWrapper image{fg.getNext()};
+    FileGetter fg{".", config.file_types};
+    GetTextureWrapper gtw{fg};
+    auto image = gtw.getNext();
 
     int pos_x = 0, pos_y = 0;
+    int next_swap = config.swap_time;
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
@@ -126,6 +134,10 @@ int main(int argc, char* argv[])
 
         DrawFPS(50, 50);
         EndDrawing();
+        if (GetTime() > next_swap) {
+            next_swap += config.swap_time;
+            image = gtw.getNext();
+        }
     }
 
     CloseWindow();
