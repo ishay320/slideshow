@@ -2,6 +2,8 @@
 
 #include <filesystem>
 #include <iostream>
+#include <memory>
+#include <random>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -73,20 +75,21 @@ class TextureWrapper {
    public:
     TextureWrapper(const std::filesystem::path& path)
     {
-        _texture = LoadTexture(path.string().c_str());
-        if (_texture.id <= 0) {
+        Texture texture = LoadTexture(path.string().c_str());
+        if (texture.id <= 0) {
             throw std::filesystem::filesystem_error("could not load image",
                                                     path, std::error_code());
         }
+        _texture = std::shared_ptr<Texture>(
+            new Texture(texture), [](Texture* t) { UnloadTexture(*t); });
     }
 
-    // FIXME: I`m broken
-    ~TextureWrapper() { UnloadTexture(_texture); }
+    ~TextureWrapper() {}
 
-    Texture texture() { return _texture; }
+    Texture texture() const { return *_texture.get(); }
 
    private:
-    Texture _texture;
+    std::shared_ptr<Texture> _texture;
 };
 
 class GetTextureWrapper {
@@ -94,10 +97,76 @@ class GetTextureWrapper {
     GetTextureWrapper(FileGetter files_getter) : _files_getter(files_getter) {}
     ~GetTextureWrapper() = default;
 
-    TextureWrapper getNext() { return {_files_getter.getNext()}; }
+    TextureWrapper getNext() { return TextureWrapper{_files_getter.getNext()}; }
 
    private:
     FileGetter _files_getter;
+};
+
+struct Point {
+    double x;
+    double y;
+    double vx;
+    double vy;
+};
+
+Point getRandomPointAndVelocity(double radius, double speed)
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0, 2 * M_PI);
+
+    // Generate a random angle
+    double angle = dis(gen);
+
+    // Calculate the point coordinates
+    double x = radius * cos(angle);
+    double y = radius * sin(angle);
+
+    // Calculate the vector from the origin to the point
+    double dx = -x;
+    double dy = -y;
+
+    // Calculate the length of the vector
+    double length = sqrt(dx * dx + dy * dy);
+
+    // Normalize the vector
+    dx /= length;
+    dy /= length;
+
+    // Scale the normalized vector by the speed
+    double vx = dx * speed;
+    double vy = dy * speed;
+
+    return {x, y, vx, vy};
+}
+
+class Effect {
+   public:
+    Effect(TextureWrapper texture) : _texture(texture)
+    {
+        _point = getRandomPointAndVelocity(200, 100);
+    }
+    Effect(Effect const& e) : _point(e._point), _texture(e._texture) {}
+    Effect& operator=(const Effect& e)
+    {
+        _point   = e._point;
+        _texture = e._texture;
+        return *this;
+    }
+    ~Effect() = default;
+
+    void update(double delta_time)
+    {
+        DrawTexture(_texture.texture(), static_cast<int>(_point.x),
+                    static_cast<int>(_point.y), WHITE);
+        _point.x += _point.vx * delta_time;
+        _point.y += _point.vy * delta_time;
+    }
+
+   private:
+    Point _point;
+    TextureWrapper _texture;
 };
 
 // steps:
@@ -105,8 +174,9 @@ class GetTextureWrapper {
 // [ ] 2. check config for folders of images
 // [x] 3. create class of files
 // [x] 4. create class of texture getter
-// [ ] 5. create class of effect
-// [ ] 6. loop til the world end
+// [x] 5. create class of effect
+// [ ] 6. create class of transition- it fill them with the image and transition
+// [ ] 7. loop til the world end
 int main(int argc, char* argv[])
 {
     struct {
@@ -123,20 +193,25 @@ int main(int argc, char* argv[])
 
     FileGetter fg{".", config.file_types};
     GetTextureWrapper gtw{fg};
-    auto image = gtw.getNext();
+    TextureWrapper image = gtw.getNext();
+    Effect effect{image};
 
-    int pos_x = 0, pos_y = 0;
-    int next_swap = config.swap_time;
+    int next_swap          = config.swap_time;
+    double prev_frame_time = GetTime();
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        DrawTexture(image.texture(), pos_x++, pos_y++, WHITE);
+
+        double current_time = GetTime();
+        double delta_time   = current_time - prev_frame_time;
+        prev_frame_time     = current_time;
+        effect.update(delta_time);
 
         DrawFPS(50, 50);
         EndDrawing();
         if (GetTime() > next_swap) {
             next_swap += config.swap_time;
-            image = gtw.getNext();
+            effect = Effect{gtw.getNext()};
         }
     }
 
