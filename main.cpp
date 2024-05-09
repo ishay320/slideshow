@@ -1,5 +1,6 @@
 #include <stdlib.h>
 
+#include <cstdio>
 #include <filesystem>
 #include <memory>
 #include <random>
@@ -72,6 +73,7 @@ class FileGetter {
 
 class ImageWrapper {
    public:
+    ImageWrapper() {}
     ImageWrapper(Image image)
     {
         _image = std::shared_ptr<Image>(new Image(image),
@@ -91,20 +93,40 @@ class ImageWrapper {
     ~ImageWrapper()                              = default;
 
     Image get() const { return *_image.get(); }
-    void blur(int size) { ImageBlurGaussian(_image.get(), size); }
+    ImageWrapper blur(int size)
+    {
+        ImageBlurGaussian(_image.get(), size);
+        return *this;
+    }
 
    private:
     std::shared_ptr<Image> _image;
 };
 
+class ImageGetter {
+   public:
+    ImageGetter(FileGetter file_getter) : _file_getter(file_getter) {}
+    ImageGetter(ImageGetter&&)                 = default;
+    ImageGetter(const ImageGetter&)            = default;
+    ImageGetter& operator=(ImageGetter&&)      = default;
+    ImageGetter& operator=(const ImageGetter&) = default;
+    ~ImageGetter()                             = default;
+
+    // TODO: make it async for better performance
+    ImageWrapper getNext() { return {_file_getter.getNext()}; }
+
+   private:
+    FileGetter _file_getter;
+};
+
 class TextureWrapper {
    public:
-    TextureWrapper(const std::filesystem::path& path) : _image(path)
+    TextureWrapper() {}
+    TextureWrapper(const ImageWrapper& image) : _image(image)
     {
         Texture texture = LoadTextureFromImage(_image.get());
         if (texture.id <= 0) {
-            throw std::filesystem::filesystem_error("could not load image",
-                                                    path, std::error_code());
+            throw "could not load image to gpu";
         }
         _texture = std::shared_ptr<Texture>(
             new Texture(texture), [](Texture* t) { UnloadTexture(*t); });
@@ -123,34 +145,15 @@ class TextureWrapper {
 
     Texture texture() const { return *_texture.get(); }
 
-    TextureWrapper copy() const
+    ImageWrapper copyImage() const
     {
         Image image = ImageCopy(_image.get());
         return {image};
     }
 
-    void blur(int size)
-    {
-        _image.blur(size);
-        Texture texture = LoadTextureFromImage(_image.get());
-        _texture        = std::shared_ptr<Texture>(
-            new Texture(texture), [](Texture* t) { UnloadTexture(*t); });
-    }
-
    private:
     ImageWrapper _image;
     std::shared_ptr<Texture> _texture;
-};
-
-class GetTextureWrapper {
-   public:
-    GetTextureWrapper(FileGetter files_getter) : _files_getter(files_getter) {}
-    ~GetTextureWrapper() = default;
-
-    TextureWrapper getNext() { return TextureWrapper{_files_getter.getNext()}; }
-
-   private:
-    FileGetter _files_getter;
 };
 
 struct Point {
@@ -191,11 +194,28 @@ Point getRandomPointAndVelocity(double radius, double speed)
     return {x, y, vx, vy};
 }
 
-class Effect {
+class Movement {
    public:
-    Effect(TextureWrapper texture)
-        : _texture(texture), _texture_back(_texture.copy())
+    Movement(ImageWrapper image) { this->replaceImage(image); }
+
+    Movement(Movement&&)                 = default;
+    Movement(const Movement&)            = default;
+    Movement& operator=(Movement&&)      = default;
+    Movement& operator=(const Movement&) = default;
+    ~Movement()                          = default;
+
+    void update(double delta_time)
     {
+        DrawTextureEx(_texture_back.texture(), {0, 0}, 0, _scale, WHITE);
+        DrawTexture(_texture.texture(), static_cast<int>(_point.x),
+                    static_cast<int>(_point.y), WHITE);
+        _point.x += _point.vx * delta_time;
+        _point.y += _point.vy * delta_time;
+    }
+    void replaceImage(ImageWrapper image)
+    {
+        _texture = {image};
+
         const int display  = GetCurrentMonitor();
         const int width_s  = GetMonitorWidth(display);
         const int height_s = GetMonitorHeight(display);
@@ -209,39 +229,33 @@ class Effect {
         _point = getRandomPointAndVelocity(200, 100);
         _point.x += middle_x - (width_i / 2.f);
         _point.y += middle_y - (height_i / 2.f);
-        _scale = width_i < height_i ? (float)width_s / width_i
-                                    : (float)height_s / height_i;
-        _texture_back.blur(10);
+        _scale        = width_i < height_i ? (float)width_s / width_i
+                                           : (float)height_s / height_i;
+        _texture_back = TextureWrapper{_texture.copyImage().blur(10)};
     }
-    Effect(Effect const& e)
-        : _point(e._point), _texture(e._texture), _texture_back(e._texture_back)
-    {
-    }
-    Effect& operator=(const Effect& e)
-    {
-        _point        = e._point;
-        _texture      = e._texture;
-        _texture_back = e._texture_back;
-        return *this;
-    }
-    ~Effect() = default;
-
-    void update(double delta_time)
-    {
-        DrawTextureEx(_texture_back.texture(), {0, 0}, 0, _scale, WHITE);
-        DrawTexture(_texture.texture(), static_cast<int>(_point.x),
-                    static_cast<int>(_point.y), WHITE);
-        _point.x += _point.vx * delta_time;
-        _point.y += _point.vy * delta_time;
-    }
-
-    TextureWrapper getTexture() const { return _texture; }
 
    private:
     float _scale;
     Point _point;
     TextureWrapper _texture;
     TextureWrapper _texture_back;
+};
+
+class Effect {
+   public:
+    Effect(ImageGetter image_getter)
+        : _image_getter(image_getter), _image_movement(_image_getter.getNext())
+    {
+    }
+    ~Effect() = default;
+
+    void update(double delta_time) { _image_movement.update(delta_time); }
+
+    void next() { _image_movement.replaceImage(_image_getter.getNext()); }
+
+   private:
+    ImageGetter _image_getter;
+    Movement _image_movement;
 };
 
 // steps:
@@ -270,12 +284,11 @@ int main(int argc, char* argv[])
 
     LOG_INFO("loading files from '" << config.images_path << '\'');
     FileGetter fg{config.images_path, config.file_types};
-    GetTextureWrapper gtw{fg};
-    TextureWrapper image = gtw.getNext();
-    Effect effect{image};
+    ImageGetter ig{fg};
+    Effect effect{ig};
 
     LOG_INFO("starting the loop");
-    int next_swap          = config.swap_time;
+    int next_swap_time     = config.swap_time;
     double prev_frame_time = GetTime();
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -288,9 +301,11 @@ int main(int argc, char* argv[])
 
         DrawFPS(50, 50);
         EndDrawing();
-        if (GetTime() > next_swap) {
-            next_swap += config.swap_time;
-            effect = Effect{gtw.getNext()};
+
+        if (GetTime() > next_swap_time) {
+            next_swap_time += config.swap_time;
+            effect.next();
+            LOG_INFO("changed image");
         }
     }
 
