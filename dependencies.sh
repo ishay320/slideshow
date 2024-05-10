@@ -16,3 +16,4 @@ raylib() {
 
 raylib
 
+# TODO: add libheif-dev

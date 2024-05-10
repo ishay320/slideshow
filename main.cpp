@@ -1,6 +1,10 @@
+#include <libheif/heif.h>
 #include <stdlib.h>
 
+#include <array>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
 #include <random>
@@ -36,7 +40,7 @@ std::vector<std::filesystem::path> getFilesByTypes(
         throw std::runtime_error{"no types passed"};
     }
 
-    search_prompt.push_back(".");
+    search_prompt.push_back(path);
     search_prompt.push_back("-iname");
     search_prompt.push_back("*\\." + types[0]);
     for (size_t i = 1; i < types.size(); i++) {
@@ -79,12 +83,43 @@ class ImageWrapper {
         _image = std::shared_ptr<Image>(new Image(image),
                                         [](Image* t) { UnloadImage(*t); });
     }
-    ImageWrapper(const std::filesystem::path& path)
+    ImageWrapper(std::filesystem::path path)
     {
-        Image image = LoadImage(path.c_str());
-        // ImageFormat(&imOrigin, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8)
-        _image = std::shared_ptr<Image>(new Image(image),
-                                        [](Image* t) { UnloadImage(*t); });
+        Image image;
+        if (path.extension() == ".heic") {
+            // TODO: make sure that there is no memory leak
+            heif_context* ctx = heif_context_alloc();
+            heif_context_read_from_file(ctx, path.c_str(), nullptr);
+
+            // get a handle to the primary image
+            heif_image_handle* handle;
+            heif_context_get_primary_image_handle(ctx, &handle);
+
+            // decode the image and convert colorspace to RGB, saved as 24bit
+            // interleaved
+            heif_image* img;
+            heif_decode_image(handle, &img, heif_colorspace_RGB,
+                              heif_chroma_interleaved_RGB, nullptr);
+
+            int stride;
+            image.data = (uint8_t*)heif_image_get_plane(
+                img, heif_channel_interleaved, &stride);
+            image.width   = heif_image_handle_get_width(handle);
+            image.height  = heif_image_handle_get_height(handle);
+            image.mipmaps = 1;
+            image.format  = PIXELFORMAT_UNCOMPRESSED_R8G8B8;
+            _image        = std::shared_ptr<Image>(
+                new Image(image), [img, handle, ctx](Image* t) {
+                    heif_image_release(img);
+                    heif_image_handle_release(handle);
+                    heif_context_free(ctx);
+                });
+        }
+        else {
+            image  = LoadImage(path.c_str());
+            _image = std::shared_ptr<Image>(new Image(image),
+                                            [](Image* t) { UnloadImage(*t); });
+        }
     }
     ImageWrapper(ImageWrapper&&)                 = default;
     ImageWrapper(const ImageWrapper&)            = default;
@@ -121,12 +156,28 @@ class ImageGetter {
 
 class TextureWrapper {
    public:
-    TextureWrapper() {}
+    TextureWrapper()
+    {
+        // TODO: check for memory leak
+        Image img = {
+            .data    = calloc(1920 * 1080, 1),
+            .width   = 1920,
+            .height  = 1080,
+            .mipmaps = 1,
+            .format  = PIXELFORMAT_UNCOMPRESSED_GRAYSCALE,
+        };
+        Texture texture = LoadTextureFromImage(img);
+        if (texture.id <= 0) {
+            throw std::runtime_error{"could not load image to gpu"};
+        }
+        _texture = std::shared_ptr<Texture>(
+            new Texture(texture), [](Texture* t) { UnloadTexture(*t); });
+    }
     TextureWrapper(const ImageWrapper& image) : _image(image)
     {
         Texture texture = LoadTextureFromImage(_image.get());
         if (texture.id <= 0) {
-            throw "could not load image to gpu";
+            throw std::runtime_error{"could not load image to gpu"};
         }
         _texture = std::shared_ptr<Texture>(
             new Texture(texture), [](Texture* t) { UnloadTexture(*t); });
@@ -136,7 +187,7 @@ class TextureWrapper {
     {
         Texture texture = LoadTextureFromImage(image);
         if (texture.id <= 0) {
-            throw "could not load image to gpu";
+            throw std::runtime_error{"could not load image to gpu"};
         }
         _texture = std::shared_ptr<Texture>(
             new Texture(texture), [](Texture* t) { UnloadTexture(*t); });
@@ -196,6 +247,7 @@ Point getRandomPointAndVelocity(double radius, double speed)
 
 class Movement {
    public:
+    Movement() : _speed(0) {}
     Movement(ImageWrapper image, float speed) : _speed(speed)
     {
         this->replaceImage(image);
@@ -207,14 +259,18 @@ class Movement {
     Movement& operator=(const Movement&) = default;
     ~Movement()                          = default;
 
-    void update(double delta_time)
+    void setSpeed(float speed) { _speed = speed; }
+
+    void update(double delta_time, uint8_t transparency)
     {
-        DrawTextureEx(_texture_back.texture(), {0, 0}, 0, _scale, WHITE);
+        DrawTextureEx(_texture_back.texture(), {0, 0}, 0, _scale,
+                      {255, 255, 255, transparency});
         DrawTexture(_texture.texture(), static_cast<int>(_point.x),
-                    static_cast<int>(_point.y), WHITE);
+                    static_cast<int>(_point.y), {255, 255, 255, transparency});
         _point.x += _point.vx * delta_time;
         _point.y += _point.vy * delta_time;
     }
+
     void replaceImage(ImageWrapper image)
     {
         _texture = {image};
@@ -248,21 +304,43 @@ class Movement {
 class Effect {
    public:
     Effect(ImageGetter image_getter, float speed)
-        : _speed(speed),
-          _image_getter(image_getter),
-          _image_movement(_image_getter.getNext(), _speed)
+        : _speed(speed), _image_getter(image_getter)
     {
+        _image_movement[0].setSpeed(_speed);
+        _image_movement[1].setSpeed(_speed);
+        _image_movement[0].replaceImage(_image_getter.getNext());
+        _image_movement[1].replaceImage(_image_getter.getNext());
     }
     ~Effect() = default;
 
-    void update(double delta_time) { _image_movement.update(delta_time); }
+    void update(double delta_time)
+    {
+        uint8_t transparency = 255;
+        if (_swap_time < 1) {
+            _swap_time += 1 * delta_time;
+            transparency = _swap_time * 255;
+            _image_movement[!_main_movment].update(delta_time, 255);
+        }
+        else if (_swap_time < 2) {
+            _swap_time = 5;  // replace once
+            _image_movement[!_main_movment].replaceImage(
+                _image_getter.getNext());
+        }
+        _image_movement[_main_movment].update(delta_time, transparency);
+    }
 
-    void next() { _image_movement.replaceImage(_image_getter.getNext()); }
+    void next()
+    {
+        _swap_time    = 0;
+        _main_movment = !_main_movment;
+    }
 
    private:
+    float _swap_time     = 1;
+    size_t _main_movment = 0;
     float _speed;
     ImageGetter _image_getter;
-    Movement _image_movement;
+    std::array<Movement, 2> _image_movement;
 };
 
 // steps:
@@ -277,10 +355,10 @@ int main(int argc, char* argv[])
 {
     struct {
         int swap_time = 5;
-        std::vector<std::string> file_types{"png", "jpg"};
+        std::vector<std::string> file_types{"png", "jpg", "heic"};
         float effect_speed      = 100;
         int fps                 = 30;
-        std::string images_path = ".";
+        std::string images_path = "./data";
     } config;
 
     LOG_INFO("starting window");
@@ -300,7 +378,7 @@ int main(int argc, char* argv[])
     double prev_frame_time = GetTime();
     while (!WindowShouldClose()) {
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(BLANK);
 
         double current_time = GetTime();
         double delta_time   = current_time - prev_frame_time;
