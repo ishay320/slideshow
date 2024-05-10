@@ -196,7 +196,10 @@ Point getRandomPointAndVelocity(double radius, double speed)
 
 class Movement {
    public:
-    Movement(ImageWrapper image) { this->replaceImage(image); }
+    Movement(ImageWrapper image, float speed) : _speed(speed)
+    {
+        this->replaceImage(image);
+    }
 
     Movement(Movement&&)                 = default;
     Movement(const Movement&)            = default;
@@ -226,7 +229,7 @@ class Movement {
         const int width_i  = _texture.texture().width;
         const int height_i = _texture.texture().height;
 
-        _point = getRandomPointAndVelocity(200, 100);
+        _point = getRandomPointAndVelocity(200, _speed);
         _point.x += middle_x - (width_i / 2.f);
         _point.y += middle_y - (height_i / 2.f);
         _scale        = width_i < height_i ? (float)width_s / width_i
@@ -235,6 +238,7 @@ class Movement {
     }
 
    private:
+    float _speed;
     float _scale;
     Point _point;
     TextureWrapper _texture;
@@ -243,8 +247,10 @@ class Movement {
 
 class Effect {
    public:
-    Effect(ImageGetter image_getter)
-        : _image_getter(image_getter), _image_movement(_image_getter.getNext())
+    Effect(ImageGetter image_getter, float speed)
+        : _speed(speed),
+          _image_getter(image_getter),
+          _image_movement(_image_getter.getNext(), _speed)
     {
     }
     ~Effect() = default;
@@ -254,6 +260,7 @@ class Effect {
     void next() { _image_movement.replaceImage(_image_getter.getNext()); }
 
    private:
+    float _speed;
     ImageGetter _image_getter;
     Movement _image_movement;
 };
@@ -271,6 +278,7 @@ int main(int argc, char* argv[])
     struct {
         int swap_time = 5;
         std::vector<std::string> file_types{"png", "jpg"};
+        float effect_speed      = 100;
         int fps                 = 30;
         std::string images_path = ".";
     } config;
@@ -285,7 +293,7 @@ int main(int argc, char* argv[])
     LOG_INFO("loading files from '" << config.images_path << '\'');
     FileGetter fg{config.images_path, config.file_types};
     ImageGetter ig{fg};
-    Effect effect{ig};
+    Effect effect{ig, config.effect_speed};
 
     LOG_INFO("starting the loop");
     int next_swap_time     = config.swap_time;
