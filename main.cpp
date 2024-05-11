@@ -10,6 +10,7 @@
 #include <random>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "commandline.h"
@@ -133,6 +134,7 @@ class ImageWrapper {
         ImageBlurGaussian(_image.get(), size);
         return *this;
     }
+    ImageWrapper copy() const { return {ImageCopy(*_image.get())}; }
 
    private:
     std::shared_ptr<Image> _image;
@@ -140,18 +142,27 @@ class ImageWrapper {
 
 class ImageGetter {
    public:
-    ImageGetter(FileGetter file_getter) : _file_getter(file_getter) {}
+    ImageGetter(FileGetter file_getter) : _file_getter(file_getter)
+    {
+        _buffer = _file_getter.getNext();
+    }
     ImageGetter(ImageGetter&&)                 = default;
     ImageGetter(const ImageGetter&)            = default;
     ImageGetter& operator=(ImageGetter&&)      = default;
     ImageGetter& operator=(const ImageGetter&) = default;
     ~ImageGetter()                             = default;
 
-    // TODO: make it async for better performance
-    ImageWrapper getNext() { return {_file_getter.getNext()}; }
+    // TODO: follow the thread for less collisions
+    ImageWrapper getNext()
+    {
+        ImageWrapper image = _buffer;
+        std::thread{[&]() { _buffer = _file_getter.getNext(); }}.detach();
+        return image;
+    }
 
    private:
     FileGetter _file_getter;
+    ImageWrapper _buffer;
 };
 
 class TextureWrapper {
@@ -173,9 +184,9 @@ class TextureWrapper {
         _texture = std::shared_ptr<Texture>(
             new Texture(texture), [](Texture* t) { UnloadTexture(*t); });
     }
-    TextureWrapper(const ImageWrapper& image) : _image(image)
+    TextureWrapper(const ImageWrapper& image)
     {
-        Texture texture = LoadTextureFromImage(_image.get());
+        Texture texture = LoadTextureFromImage(image.get());
         if (texture.id <= 0) {
             throw std::runtime_error{"could not load image to gpu"};
         }
@@ -183,7 +194,7 @@ class TextureWrapper {
             new Texture(texture), [](Texture* t) { UnloadTexture(*t); });
     }
 
-    TextureWrapper(Image image) : _image(image)
+    TextureWrapper(Image image)
     {
         Texture texture = LoadTextureFromImage(image);
         if (texture.id <= 0) {
@@ -196,14 +207,7 @@ class TextureWrapper {
 
     Texture texture() const { return *_texture.get(); }
 
-    ImageWrapper copyImage() const
-    {
-        Image image = ImageCopy(_image.get());
-        return {image};
-    }
-
    private:
-    ImageWrapper _image;
     std::shared_ptr<Texture> _texture;
 };
 
@@ -248,9 +252,10 @@ Point getRandomPointAndVelocity(double radius, double speed)
 class Movement {
    public:
     Movement() : _speed(0) {}
-    Movement(ImageWrapper image, float speed) : _speed(speed)
+    Movement(ImageWrapper image, ImageWrapper background, float speed)
+        : _speed(speed)
     {
-        this->replaceImage(image);
+        this->replaceImage(image, background);
     }
 
     Movement(Movement&&)                 = default;
@@ -271,9 +276,9 @@ class Movement {
         _point.y += _point.vy * delta_time;
     }
 
-    void replaceImage(ImageWrapper image)
+    void replaceImage(ImageWrapper image, ImageWrapper background)
     {
-        _texture = {image};
+        _texture = TextureWrapper{image};
 
         const int display  = GetCurrentMonitor();
         const int width_s  = GetMonitorWidth(display);
@@ -290,7 +295,7 @@ class Movement {
         _point.y += middle_y - (height_i / 2.f);
         _scale        = width_i < height_i ? (float)width_s / width_i
                                            : (float)height_s / height_i;
-        _texture_back = TextureWrapper{_texture.copyImage().blur(10)};
+        _texture_back = TextureWrapper{background};
     }
 
    private:
@@ -308,10 +313,22 @@ class Effect {
     {
         _image_movement[0].setSpeed(_speed);
         _image_movement[1].setSpeed(_speed);
-        _image_movement[0].replaceImage(_image_getter.getNext());
-        _image_movement[1].replaceImage(_image_getter.getNext());
+        auto image      = _image_getter.getNext();
+        auto background = image.copy();
+        _image_movement[0].replaceImage(image, background);
+        image      = _image_getter.getNext();
+        background = image.copy();
+        _image_movement[1].replaceImage(image, background);
+        _image_buffer      = _image_getter.getNext();
+        _background_buffer = _image_buffer.copy();
     }
-    ~Effect() = default;
+
+    ~Effect()
+    {
+        if (_load_buffer.joinable()) {
+            _load_buffer.join();
+        }
+    }
 
     void update(double delta_time)
     {
@@ -323,8 +340,15 @@ class Effect {
         }
         else if (_swap_time < 2) {
             _swap_time = 5;  // replace once
-            _image_movement[!_main_movment].replaceImage(
-                _image_getter.getNext());
+            _image_movement[!_main_movment].replaceImage(_image_buffer,
+                                                         _background_buffer);
+            if (_load_buffer.joinable()) {
+                _load_buffer.join();
+            }
+            _load_buffer = std::thread{[&]() {
+                _image_buffer      = _image_getter.getNext();
+                _background_buffer = _image_buffer.copy().blur(10);
+            }};
         }
         _image_movement[_main_movment].update(delta_time, transparency);
     }
@@ -336,11 +360,15 @@ class Effect {
     }
 
    private:
-    float _swap_time     = 1;
+    float _swap_time     = 5;
     size_t _main_movment = 0;
     float _speed;
     ImageGetter _image_getter;
     std::array<Movement, 2> _image_movement;
+
+    std::thread _load_buffer;
+    ImageWrapper _image_buffer;
+    ImageWrapper _background_buffer;
 };
 
 // steps:
@@ -354,7 +382,7 @@ class Effect {
 int main(int argc, char* argv[])
 {
     struct {
-        int swap_time = 5;
+        int swap_time = 8;
         std::vector<std::string> file_types{"png", "jpg", "heic"};
         float effect_speed      = 100;
         int fps                 = 30;
