@@ -58,7 +58,7 @@ std::vector<std::filesystem::path> getFilesByTypes(
     return out;
 }
 
-struct vec2 {
+struct vec2i {
     int x;
     int y;
 };
@@ -173,7 +173,7 @@ class ImageWrapper {
     {
         ImageResize(&_image, width, height);
     }
-    vec2 size() { return {_image.width, _image.height}; }
+    vec2i size() { return {_image.width, _image.height}; }
 
    private:
     void loadFromImage(Image image)
@@ -378,7 +378,7 @@ class Effect {
     std::tuple<ImageWrapper, ImageWrapper> loadImages()
     {
         auto image           = _image_getter.getNext();
-        vec2 size            = image.size();
+        vec2i size           = image.size();
         int width            = size.x;
         int height           = size.y;
         const int display    = GetCurrentMonitor();
