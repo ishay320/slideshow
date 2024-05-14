@@ -1,6 +1,7 @@
 #include <libheif/heif.h>
 #include <stdlib.h>
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstdint>
@@ -336,6 +337,9 @@ class Movement {
     {
         _texture = TextureWrapper{image};
 
+        _texture_back = TextureWrapper{background};
+        SetTextureFilter(_texture_back.texture(), TEXTURE_FILTER_BILINEAR);
+
         const int display  = GetCurrentMonitor();
         const int width_s  = GetMonitorWidth(display);
         const int height_s = GetMonitorHeight(display);
@@ -345,15 +349,11 @@ class Movement {
 
         const int width_i  = _texture_back.texture().width;
         const int height_i = _texture_back.texture().height;
+        _scale = std::max((float)width_s / width_i, (float)height_s / height_i);
 
         _point = getRandomPointAndVelocity(200, _speed);
-        // FIXME: use the foreground size
-        _point.x += middle_x - (width_i / 2.f);
-        _point.y += middle_y - (height_i / 2.f);
-        // FIXME: the scale is broken
-        _scale        = width_i < height_i ? (float)width_s / width_i
-                                           : (float)height_s / height_i;
-        _texture_back = TextureWrapper{background};
+        _point.x += middle_x - (_texture.texture().width / 2.f);
+        _point.y += middle_y - (_texture.texture().height / 2.f);
     }
 
    private:
@@ -385,15 +385,19 @@ class Effect {
 
     std::tuple<ImageWrapper, ImageWrapper> loadImages()
     {
-        auto image   = _image_getter.getNext();
-        vec2 size    = image.size();
-        int width    = size.x;
-        int height   = size.y;
-        float normal = height < width ? height / 1080.f : width / 1920.f;
-        LOG_INFO(normal);
+        auto image           = _image_getter.getNext();
+        vec2 size            = image.size();
+        int width            = size.x;
+        int height           = size.y;
+        const int display    = GetCurrentMonitor();
+        const float width_m  = GetMonitorWidth(display);
+        const float height_m = GetMonitorHeight(display);
+        float normal = height < width ? height / height_m : width / width_m;
+        LOG_INFO("resize image normal: " << normal);
         image.resize(width / normal, height / normal);
         auto background = image.copy();
-        background.resize(width / 5.f, height / 5.f);
+        background.resize((width / normal) / 2.f, (height / normal) / 2.f);
+        background.blur(3);
         return {std::move(image), std::move(background)};
     }
 
@@ -457,8 +461,8 @@ int main(int argc, char* argv[])
     struct {
         int swap_time = 8;
         std::vector<std::string> file_types{"png", "jpg", "heic"};
-        float effect_speed      = 100;
-        int fps                 = 30;
+        float effect_speed      = 50;
+        int fps                 = 60;
         std::string images_path = "./data";
     } config;
 
@@ -479,7 +483,7 @@ int main(int argc, char* argv[])
     double prev_frame_time = GetTime();
     while (!WindowShouldClose()) {
         BeginDrawing();
-        ClearBackground(BLANK);
+        ClearBackground(BLACK);
 
         double current_time = GetTime();
         double delta_time   = current_time - prev_frame_time;
