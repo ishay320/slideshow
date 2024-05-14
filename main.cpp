@@ -20,9 +20,6 @@
 #include "logger.h"
 #include "raylib.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 std::vector<std::string> saparateByDelim(const std::string& s,
                                          const std::string& delim)
 {
@@ -268,42 +265,37 @@ class TextureWrapper {
     std::shared_ptr<Texture> _texture;
 };
 
-struct Point {
-    double x;
-    double y;
-    double vx;
-    double vy;
-};
-
-Point getRandomPointAndVelocity(double radius, double speed)
+void getRandomPointAndVelocity(float radius, float speed, Vector2& point,
+                               Vector2& vel)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(0, 2 * M_PI);
 
     // Generate a random angle
-    double angle = dis(gen);
+    float angle = dis(gen);
 
     // Calculate the point coordinates
-    double x = radius * cos(angle);
-    double y = radius * sin(angle);
+    float x = radius * std::cos(angle);
+    float y = radius * std::sin(angle);
 
     // Calculate the vector from the origin to the point
-    double dx = -x;
-    double dy = -y;
+    float dx = -x;
+    float dy = -y;
 
     // Calculate the length of the vector
-    double length = sqrt(dx * dx + dy * dy);
+    float length = std::sqrt(dx * dx + dy * dy);
 
     // Normalize the vector
     dx /= length;
     dy /= length;
 
     // Scale the normalized vector by the speed
-    double vx = dx * speed;
-    double vy = dy * speed;
+    float vx = dx * speed;
+    float vy = dy * speed;
 
-    return {x, y, vx, vy};
+    point = {x, y};
+    vel   = {vx, vy};
 }
 
 class Movement {
@@ -327,10 +319,9 @@ class Movement {
     {
         DrawTextureEx(_texture_back.texture(), {0, 0}, 0, _scale,
                       {255, 255, 255, transparency});
-        DrawTexture(_texture.texture(), static_cast<int>(_point.x),
-                    static_cast<int>(_point.y), {255, 255, 255, transparency});
-        _point.x += _point.vx * delta_time;
-        _point.y += _point.vy * delta_time;
+        DrawTextureV(_texture.texture(), _point, {255, 255, 255, transparency});
+        _point.x += _point_vel.x * delta_time;
+        _point.y += _point_vel.y * delta_time;
     }
 
     void replaceImage(ImageWrapper image, ImageWrapper background)
@@ -351,7 +342,7 @@ class Movement {
         const int height_i = _texture_back.texture().height;
         _scale = std::max((float)width_s / width_i, (float)height_s / height_i);
 
-        _point = getRandomPointAndVelocity(200, _speed);
+        getRandomPointAndVelocity(200, _speed, _point, _point_vel);
         _point.x += middle_x - (_texture.texture().width / 2.f);
         _point.y += middle_y - (_texture.texture().height / 2.f);
     }
@@ -359,7 +350,8 @@ class Movement {
    private:
     float _speed;
     float _scale;
-    Point _point;
+    Vector2 _point;
+    Vector2 _point_vel;
     TextureWrapper _texture;
     TextureWrapper _texture_back;
 };
