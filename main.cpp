@@ -1,3 +1,4 @@
+#include <getopt.h>
 #include <libheif/heif.h>
 #include <stdlib.h>
 
@@ -10,6 +11,7 @@
 #include <cstring>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <random>
 #include <stdexcept>
 #include <string>
@@ -448,8 +450,46 @@ class Effect {
 // [x] 5. create class of effect
 // [x] 6. using effect class fill it with the image and transition
 // [x] 7. loop til the world end
+
+void usage(int argc, char* argv[])
+{
+    std::cout << "Usage: '" << argv[0] << "'\n";
+    std::cout << "      -v --valgrind <seconds> | optional\n";
+}
+
+static const char optstr[]                = "r:h";
+static const struct option long_options[] = {
+    {"run-time-seconds", required_argument, nullptr, 'r'},
+    {nullptr, 0, nullptr, 0},
+};
+struct argsSettings {
+    std::optional<int> run_time_in_sec;
+};
+argsSettings init(int argc, char* argv[])
+{
+    argsSettings args;
+    int c;
+    while ((c = getopt_long(argc, argv, optstr, long_options, NULL)) != -1) {
+        const char* tmp_optarg = optarg;
+        switch (c) {
+            case 'r':
+                args.run_time_in_sec = std::stoi(tmp_optarg);
+                break;
+            case 'h':
+                usage(argc, argv);
+                exit(0);
+            default:
+                usage(argc, argv);
+                exit(1);
+        }
+    }
+    return args;
+}
+
 int main(int argc, char* argv[])
 {
+    auto args = init(argc, argv);
+
     struct {
         int swap_time = 8;
         std::vector<std::string> file_types{"png", "jpg", "heic"};
@@ -489,6 +529,11 @@ int main(int argc, char* argv[])
             next_swap_time += config.swap_time;
             effect.next();
             LOG_INFO("changed image");
+        }
+
+        if (args.run_time_in_sec.has_value() &&
+            GetTime() > args.run_time_in_sec.value()) {
+            break;
         }
     }
 
