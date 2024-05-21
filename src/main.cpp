@@ -450,6 +450,7 @@ class Effect {
 // [x] 5. create class of effect
 // [x] 6. using effect class fill it with the image and transition
 // [x] 7. loop til the world end
+// [ ] 8. if drive connect/disconnect search again
 
 void usage(int argc, char* argv[])
 {
