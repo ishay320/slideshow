@@ -3,23 +3,14 @@
 #include <thread>
 #include <vector>
 
-#include "utils.h"
 #include "wrappers.h"
 
 class FileGetter {
    public:
-    FileGetter(const std::string& path, const std::vector<std::string>& types)
-    {
-        _paths = getFilesByTypes(path, types);
-        srand(time(NULL));
-    }
+    FileGetter(const std::string& path, const std::vector<std::string>& types);
     ~FileGetter() = default;
 
-    std::filesystem::path getNext()
-    {
-        int pos = rand() % _paths.size();
-        return _paths[pos];
-    }
+    std::filesystem::path getNext();
 
    private:
     std::vector<std::filesystem::path> _paths;
@@ -27,30 +18,15 @@ class FileGetter {
 
 class ImageGetter {
    public:
-    ImageGetter(FileGetter file_getter) : _file_getter(file_getter)
-    {
-        _buffer = _file_getter.getNext();
-    }
+    ImageGetter(FileGetter file_getter);
     ImageGetter(ImageGetter&&)            = default;
     ImageGetter& operator=(ImageGetter&&) = default;
-    ~ImageGetter() { join(); }
+    ~ImageGetter();
 
-    ImageWrapper getNext()
-    {
-        join();
-        ImageWrapper image = std::move(_buffer);
-        _buffer_thread =
-            std::thread{[&]() { _buffer = _file_getter.getNext(); }};
-        return image;
-    }
+    ImageWrapper getNext();
 
    private:
-    void join()
-    {
-        if (_buffer_thread.joinable()) {
-            _buffer_thread.join();
-        }
-    }
+    void join();
     FileGetter _file_getter;
     ImageWrapper _buffer;
     std::thread _buffer_thread;
