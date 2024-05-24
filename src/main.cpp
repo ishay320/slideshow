@@ -26,7 +26,7 @@
 void usage(int argc, char* argv[])
 {
     std::cout << "Usage: '" << argv[0] << "'\n";
-    std::cout << "      -v --valgrind <seconds> | optional\n";
+    std::cout << "      -r --run-time-seconds <seconds> | optional\n";
 }
 
 static const char optstr[]                = "r:h";
